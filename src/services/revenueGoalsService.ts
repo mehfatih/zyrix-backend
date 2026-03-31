@@ -1,6 +1,3 @@
-// ─────────────────────────────────────────────────────────────
-// Zyrix Backend — Revenue Goals Service
-// ─────────────────────────────────────────────────────────────
 import { prisma } from "../config/database";
 import { Decimal } from "@prisma/client/runtime/library";
 import { GoalPeriod } from "@prisma/client";
@@ -10,89 +7,39 @@ function toNum(d: Decimal | null | undefined): number {
 }
 
 const goalSelect = {
-  id: true,
-  name: true,
-  targetAmount: true,
-  currentAmount: true,
-  currency: true,
-  period: true,
-  startDate: true,
-  endDate: true,
-  createdAt: true,
+  id: true, name: true, targetAmount: true, currentAmount: true,
+  currency: true, period: true, startDate: true, endDate: true, createdAt: true,
 };
 
 export const revenueGoalsService = {
   async list(merchantId: string, pagination: { skip: number; limit: number }) {
     const [goals, total] = await Promise.all([
-      prisma.revenueGoal.findMany({
-        where: { merchantId },
-        select: goalSelect,
-        orderBy: { createdAt: "desc" },
-        skip: pagination.skip,
-        take: pagination.limit,
-      }),
+      prisma.revenueGoal.findMany({ where: { merchantId }, select: goalSelect, orderBy: { createdAt: "desc" }, skip: pagination.skip, take: pagination.limit }),
       prisma.revenueGoal.count({ where: { merchantId } }),
     ]);
     return {
       data: goals.map((g) => {
         const target = toNum(g.targetAmount);
         const current = toNum(g.currentAmount);
-        return {
-          ...g,
-          targetAmount: target,
-          currentAmount: current,
-          progressPercent: parseFloat(
-            (target > 0 ? (current / target) * 100 : 0).toFixed(1)
-          ),
-        };
+        return { ...g, targetAmount: target, currentAmount: current, progressPercent: parseFloat((target > 0 ? (current / target) * 100 : 0).toFixed(1)) };
       }),
       total,
     };
   },
 
-  async create(
-    merchantId: string,
-    body: {
-      name: string;
-      targetAmount: number;
-      currency: string;
-      period: string;
-      startDate: string;
-      endDate: string;
-    }
-  ) {
+  async create(merchantId: string, body: { name: string; targetAmount: number; currency: string; period: string; startDate: string; endDate: string }) {
     const goal = await prisma.revenueGoal.create({
       data: {
-        merchantId,
-        name: body.name,
-        targetAmount: body.targetAmount,
-        currency: body.currency.toUpperCase(),
-        period: body.period.toUpperCase() as GoalPeriod,
-        startDate: new Date(body.startDate),
-        endDate: new Date(body.endDate),
+        merchantId, name: body.name, targetAmount: body.targetAmount,
+        currency: body.currency.toUpperCase(), period: body.period.toUpperCase() as GoalPeriod,
+        startDate: new Date(body.startDate), endDate: new Date(body.endDate),
       },
       select: goalSelect,
     });
-    return {
-      ...goal,
-      targetAmount: toNum(goal.targetAmount),
-      currentAmount: toNum(goal.currentAmount),
-      progressPercent: 0,
-    };
+    return { ...goal, targetAmount: toNum(goal.targetAmount), currentAmount: toNum(goal.currentAmount), progressPercent: 0 };
   },
 
-  async update(
-    merchantId: string,
-    id: string,
-    body: Partial<{
-      name: string;
-      targetAmount: number;
-      currency: string;
-      period: string;
-      startDate: string;
-      endDate: string;
-    }>
-  ) {
+  async update(merchantId: string, id: string, body: Partial<{ name: string; targetAmount: number; currency: string; period: string; startDate: string; endDate: string }>) {
     const goal = await prisma.revenueGoal.findFirst({ where: { id, merchantId } });
     if (!goal) return null;
     const updated = await prisma.revenueGoal.update({
@@ -109,14 +56,7 @@ export const revenueGoalsService = {
     });
     const target = toNum(updated.targetAmount);
     const current = toNum(updated.currentAmount);
-    return {
-      ...updated,
-      targetAmount: target,
-      currentAmount: current,
-      progressPercent: parseFloat(
-        (target > 0 ? (current / target) * 100 : 0).toFixed(1)
-      ),
-    };
+    return { ...updated, targetAmount: target, currentAmount: current, progressPercent: parseFloat((target > 0 ? (current / target) * 100 : 0).toFixed(1)) };
   },
 
   async delete(merchantId: string, id: string) {
