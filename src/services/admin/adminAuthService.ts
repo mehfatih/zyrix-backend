@@ -1,7 +1,3 @@
-// ─────────────────────────────────────────────────────────────
-// Zyrix Backend — Admin Auth Service
-// ─────────────────────────────────────────────────────────────
-
 import { prisma } from "../../config/database";
 import { env } from "../../config/env";
 import bcrypt from "bcryptjs";
@@ -15,25 +11,20 @@ export const adminAuthService = {
     const valid = await bcrypt.compare(password, admin.passwordHash);
     if (!valid) return null;
 
-    await prisma.admin.update({
-      where: { id: admin.id },
-      data: { lastLoginAt: new Date() },
-    });
+    await prisma.admin.update({ where: { id: admin.id }, data: { lastLoginAt: new Date() } });
+
+    const secret = env.adminJwt.secret as string;
+    const expiresIn = env.adminJwt.expiresIn as string;
 
     const token = jwt.sign(
       { id: admin.id, email: admin.email, name: admin.name, role: admin.role },
-      env.adminJwt.secret as string,
-      { expiresIn: env.adminJwt.expiresIn as string }
+      secret,
+      { expiresIn }
     );
 
     return {
       token,
-      admin: {
-        id: admin.id,
-        email: admin.email,
-        name: admin.name,
-        role: admin.role,
-      },
+      admin: { id: admin.id, email: admin.email, name: admin.name, role: admin.role },
     };
   },
 };
