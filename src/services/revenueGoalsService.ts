@@ -1,7 +1,6 @@
 // ─────────────────────────────────────────────────────────────
 // Zyrix Backend — Revenue Goals Service
 // ─────────────────────────────────────────────────────────────
-
 import { prisma } from "../config/database";
 import { Decimal } from "@prisma/client/runtime/library";
 import { GoalPeriod } from "@prisma/client";
@@ -34,19 +33,19 @@ export const revenueGoalsService = {
       }),
       prisma.revenueGoal.count({ where: { merchantId } }),
     ]);
-
     return {
-      data: goals.map((g) => ({
-        ...g,
-        targetAmount: toNum(g.targetAmount),
-        currentAmount: toNum(g.currentAmount),
-        progressPercent: parseFloat(
-          (g.targetAmount > 0
-            ? (toNum(g.currentAmount) / toNum(g.targetAmount)) * 100
-            : 0
-          ).toFixed(1)
-        ),
-      })),
+      data: goals.map((g) => {
+        const target = toNum(g.targetAmount);
+        const current = toNum(g.currentAmount);
+        return {
+          ...g,
+          targetAmount: target,
+          currentAmount: current,
+          progressPercent: parseFloat(
+            (target > 0 ? (current / target) * 100 : 0).toFixed(1)
+          ),
+        };
+      }),
       total,
     };
   },
@@ -96,7 +95,6 @@ export const revenueGoalsService = {
   ) {
     const goal = await prisma.revenueGoal.findFirst({ where: { id, merchantId } });
     if (!goal) return null;
-
     const updated = await prisma.revenueGoal.update({
       where: { id },
       data: {
@@ -109,10 +107,8 @@ export const revenueGoalsService = {
       },
       select: goalSelect,
     });
-
     const target = toNum(updated.targetAmount);
     const current = toNum(updated.currentAmount);
-
     return {
       ...updated,
       targetAmount: target,
