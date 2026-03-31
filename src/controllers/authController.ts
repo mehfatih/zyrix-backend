@@ -9,7 +9,6 @@ import { createOtp, verifyOtp } from "../services/otpService";
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "../services/tokenService";
 import { AuthenticatedRequest, ERROR_CODES } from "../types";
 
-// Helper to generate unique merchantId (ZRX-XXXXX)
 async function generateMerchantId(): Promise<string> {
   let id: string;
   let exists = true;
@@ -24,21 +23,16 @@ async function generateMerchantId(): Promise<string> {
   return id;
 }
 
-// ─── POST /api/auth/send-otp ──────────────────────────────────
-
 export async function sendOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const { phone } = req.body as { phone: string };
-
     const { code, expiresAt } = await createOtp(phone);
 
-    // In production: send SMS via Twilio/MessageBird
-    // For now, return code in development mode only
     const response: Record<string, unknown> = {
       success: true,
       data: {
         message: "OTP sent successfully",
-        expiresIn: env.otp.expiresMinutes * 60, // seconds
+        expiresIn: env.otp.expiresMinutes * 60,
       },
     };
 
@@ -56,12 +50,9 @@ export async function sendOtp(req: Request, res: Response, next: NextFunction): 
   }
 }
 
-// ─── POST /api/auth/verify-otp ───────────────────────────────
-
 export async function verifyOtpHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const { phone, code } = req.body as { phone: string; code: string };
-
     const result = await verifyOtp(phone, code);
 
     if (!result.valid) {
@@ -91,7 +82,6 @@ export async function verifyOtpHandler(req: Request, res: Response, next: NextFu
       return;
     }
 
-    // Find or create merchant
     let merchant = await prisma.merchant.findUnique({ where: { phone } });
 
     if (!merchant) {
@@ -102,7 +92,7 @@ export async function verifyOtpHandler(req: Request, res: Response, next: NextFu
           name: "New Merchant",
           email: `${phone.replace(/\D/g, "")}@zyrix.co`,
           merchantId,
-          country: "TR", // Default; can be updated in onboarding
+          country: "TR",
           status: "PENDING_KYC",
           kycStatus: "PENDING",
           onboardingDone: false,
@@ -110,7 +100,6 @@ export async function verifyOtpHandler(req: Request, res: Response, next: NextFu
       });
     }
 
-    // Check if merchant is suspended
     if (merchant.status === "SUSPENDED") {
       res.status(403).json({
         success: false,
@@ -122,7 +111,6 @@ export async function verifyOtpHandler(req: Request, res: Response, next: NextFu
       return;
     }
 
-    // Generate tokens
     const token = generateAccessToken(merchant);
     const refreshToken = generateRefreshToken(merchant.id);
 
@@ -148,8 +136,6 @@ export async function verifyOtpHandler(req: Request, res: Response, next: NextFu
   }
 }
 
-// ─── POST /api/auth/refresh-token ────────────────────────────
-
 export async function refreshToken(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const authHeader = req.headers.authorization;
@@ -157,26 +143,20 @@ export async function refreshToken(req: Request, res: Response, next: NextFuncti
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       res.status(401).json({
         success: false,
-        error: {
-          code: ERROR_CODES.UNAUTHORIZED,
-          message: "Refresh token missing",
-        },
+        error: { code: ERROR_CODES.UNAUTHORIZED, message: "Refresh token missing" },
       });
       return;
     }
 
     const token = authHeader.slice(7);
-
     let payload;
+
     try {
       payload = verifyRefreshToken(token);
     } catch {
       res.status(401).json({
         success: false,
-        error: {
-          code: ERROR_CODES.INVALID_TOKEN,
-          message: "Invalid or expired refresh token",
-        },
+        error: { code: ERROR_CODES.INVALID_TOKEN, message: "Invalid or expired refresh token" },
       });
       return;
     }
@@ -186,55 +166,32 @@ export async function refreshToken(req: Request, res: Response, next: NextFuncti
     if (!merchant) {
       res.status(401).json({
         success: false,
-        error: {
-          code: ERROR_CODES.MERCHANT_NOT_FOUND,
-          message: "Merchant not found",
-        },
+        error: { code: ERROR_CODES.MERCHANT_NOT_FOUND, message: "Merchant not found" },
       });
       return;
     }
 
     const newToken = generateAccessToken(merchant);
-
-    res.status(200).json({
-      success: true,
-      data: { token: newToken },
-    });
+    res.status(200).json({ success: true, data: { token: newToken } });
   } catch (err) {
     next(err);
   }
 }
-
-// ─── POST /api/auth/logout ────────────────────────────────────
 
 export async function logout(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    // JWT is stateless — client discards the token
-    // In a production system, add token to a blocklist (Redis)
-    const _merchant = (req as AuthenticatedRequest).merchant;
-
-    res.status(200).json({
-      success: true,
-      data: { message: "Logged out successfully" },
-    });
+    void (req as AuthenticatedRequest).merchant;
+    res.status(200).json({ success: true, data: { message: "Logged out successfully" } });
   } catch (err) {
     next(err);
   }
 }
-
-// ─── DELETE /api/auth/account ─────────────────────────────────
 
 export async function deleteAccount(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const { id } = (req as AuthenticatedRequest).merchant;
-
-    // Delete merchant and all related data (Cascade handles relations)
     await prisma.merchant.delete({ where: { id } });
-
-    res.status(200).json({
-      success: true,
-      data: { message: "Account deleted successfully" },
-    });
+    res.status(200).json({ success: true, data: { message: "Account deleted successfully" } });
   } catch (err) {
     next(err);
   }
