@@ -46,4 +46,4 @@ COPY --from=builder /app/dist ./dist
 EXPOSE ${PORT:-3000}
 
 # Run migrations then start
-CMD ["sh", "-c", "npx prisma db push && node dist/index.js"]
+CMD ["node", "dist/index.js"]
