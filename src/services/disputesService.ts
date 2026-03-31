@@ -4,6 +4,7 @@
 
 import { prisma } from "../config/database";
 import { Decimal } from "@prisma/client/runtime/library";
+import { Prisma } from "@prisma/client";
 
 function toNum(d: Decimal | null | undefined): number {
   return parseFloat((d ?? 0).toString());
@@ -38,8 +39,8 @@ export const disputesService = {
     filters: { status?: string },
     pagination: { skip: number; limit: number }
   ) {
-    const where: Record<string, unknown> = { merchantId };
-    if (filters.status) where.status = filters.status;
+    const where: Prisma.DisputeWhereInput = { merchantId };
+    if (filters.status) where.status = filters.status as Prisma.EnumDisputeStatusFilter;
 
     const [disputes, total] = await Promise.all([
       prisma.dispute.findMany({
@@ -75,15 +76,22 @@ export const disputesService = {
     const dispute = await prisma.dispute.findFirst({ where: { id, merchantId } });
     if (!dispute) return null;
 
+    const evidenceValue: Prisma.InputJsonValue | undefined = body.evidence
+      ? (body.evidence as Prisma.InputJsonValue)
+      : dispute.evidence
+      ? (dispute.evidence as Prisma.InputJsonValue)
+      : undefined;
+
     const updated = await prisma.dispute.update({
       where: { id },
       data: {
         resolution: body.response,
-        evidence: body.evidence ?? dispute.evidence ?? undefined,
+        ...(evidenceValue !== undefined && { evidence: evidenceValue }),
         status: "UNDER_REVIEW",
       },
       select: disputeSelect,
     });
+
     return { ...updated, amount: toNum(updated.amount) };
   },
 };
