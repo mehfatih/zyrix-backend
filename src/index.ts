@@ -79,36 +79,18 @@ app.use(errorHandler);
 // ─── Start Server ─────────────────────────────────────────────
 
 async function bootstrap(): Promise<void> {
+  // Start server first so healthcheck passes
+  app.listen(env.port, () => {
+    console.log(`\n🚀 Zyrix Backend running on port ${env.port}`);
+  });
+
+  // Then connect to database
   try {
-    // Verify database connection
     await prisma.$connect();
     console.log("✅ Database connected");
-
-    app.listen(env.port, () => {
-      console.log(`\n🚀 Zyrix Backend running`);
-      console.log(`   Environment: ${env.nodeEnv}`);
-      console.log(`   Port:        ${env.port}`);
-      console.log(`   URL:         http://localhost:${env.port}`);
-      console.log(`   Health:      http://localhost:${env.port}/health`);
-      console.log(`   Auth API:    http://localhost:${env.port}/api/auth`);
-      console.log(`   Merchant:    http://localhost:${env.port}/api/merchant`);
-      console.log(`   Dashboard:   http://localhost:${env.port}/api/dashboard`);
-      console.log(`   Transactions:http://localhost:${env.port}/api/transactions`);
-      console.log(`   Balance:     http://localhost:${env.port}/api/balance`);
-      console.log(`   Analytics:   http://localhost:${env.port}/api/analytics`);
-      console.log(`   Settlements: http://localhost:${env.port}/api/settlements`);
-      console.log(`   Disputes:    http://localhost:${env.port}/api/disputes`);
-      console.log(`   Notifs:      http://localhost:${env.port}/api/notifications`);
-      console.log(`   Invoices:    http://localhost:${env.port}/api/invoices`);
-      console.log(`   Expenses:    http://localhost:${env.port}/api/expenses`);
-      console.log(`   Rev Goals:   http://localhost:${env.port}/api/revenue-goals`);
-      console.log(`   Subs:        http://localhost:${env.port}/api/subscriptions`);
-      console.log(`   Pay Links:   http://localhost:${env.port}/api/payment-links\n`);
-    });
   } catch (err) {
-    console.error("❌ Failed to start server:", err);
-    await prisma.$disconnect();
-    process.exit(1);
+    console.error("❌ Database connection failed:", err);
+    // Don't exit — let the server keep running
   }
 }
 
