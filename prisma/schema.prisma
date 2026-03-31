@@ -11,21 +11,107 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Language { AR TR EN }
-enum Currency { SAR TRY USD EUR AED KWD QAR }
-enum MerchantStatus { ACTIVE SUSPENDED PENDING_KYC }
-enum KycStatus { PENDING VERIFIED REJECTED }
-enum TransactionStatus { SUCCESS PENDING FAILED }
-enum PaymentMethod { CREDIT_CARD BANK_TRANSFER DIGITAL_WALLET CRYPTO }
-enum SettlementStatus { SCHEDULED PROCESSING COMPLETED FAILED }
-enum DisputeStatus { OPEN UNDER_REVIEW RESOLVED ESCALATED }
-enum InvoiceStatus { DRAFT SENT PAID OVERDUE CANCELLED }
-enum GoalPeriod { DAILY WEEKLY MONTHLY QUARTERLY YEARLY }
-enum SubInterval { MONTHLY YEARLY }
-enum SubStatus { ACTIVE CANCELLED PAST_DUE }
-enum LinkStatus { ACTIVE EXPIRED DISABLED }
-enum NotificationType { PAYMENT SETTLEMENT DISPUTE SYSTEM SECURITY }
-enum AdminRole { SUPER_ADMIN SUPPORT FINANCE }
+enum Language {
+  AR
+  TR
+  EN
+}
+
+enum Currency {
+  SAR
+  TRY
+  USD
+  EUR
+  AED
+  KWD
+  QAR
+}
+
+enum MerchantStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_KYC
+}
+
+enum KycStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum TransactionStatus {
+  SUCCESS
+  PENDING
+  FAILED
+}
+
+enum PaymentMethod {
+  CREDIT_CARD
+  BANK_TRANSFER
+  DIGITAL_WALLET
+  CRYPTO
+}
+
+enum SettlementStatus {
+  SCHEDULED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  ESCALATED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum GoalPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum SubInterval {
+  MONTHLY
+  YEARLY
+}
+
+enum SubStatus {
+  ACTIVE
+  CANCELLED
+  PAST_DUE
+}
+
+enum LinkStatus {
+  ACTIVE
+  EXPIRED
+  DISABLED
+}
+
+enum NotificationType {
+  PAYMENT
+  SETTLEMENT
+  DISPUTE
+  SYSTEM
+  SECURITY
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  SUPPORT
+  FINANCE
+}
 
 // ─── Admin Model ──────────────────────────────────────────────
 
