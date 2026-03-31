@@ -22,8 +22,8 @@ export const adminAuthService = {
 
     const token = jwt.sign(
       { id: admin.id, email: admin.email, name: admin.name, role: admin.role },
-      env.adminJwt.secret,
-      { expiresIn: env.adminJwt.expiresIn }
+      env.adminJwt.secret as string,
+      { expiresIn: env.adminJwt.expiresIn as string }
     );
 
     return {
