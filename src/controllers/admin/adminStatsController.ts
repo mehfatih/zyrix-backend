@@ -3,7 +3,7 @@ import { AdminRequest } from "../../middleware/adminAuth";
 import { adminStatsService } from "../../services/admin/adminStatsService";
 
 export const adminStatsController = {
-  async getStats(_req: AdminRequest, res: Response, next: NextFunction) {
+  async getStats(req: AdminRequest, res: Response, next: NextFunction) {
     try {
       const data = await adminStatsService.getSystemStats();
       res.json({ success: true, data });
