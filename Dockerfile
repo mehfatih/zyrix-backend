@@ -1,0 +1,49 @@
+# ─────────────────────────────────────────────────────────────
+# Zyrix Backend — Production Dockerfile for Railway
+# ─────────────────────────────────────────────────────────────
+
+# Stage 1: Build
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json package-lock.json* ./
+
+# Install all dependencies (including devDependencies for build)
+RUN npm install
+
+# Copy source code and prisma schema
+COPY prisma ./prisma
+COPY src ./src
+COPY tsconfig.json ./
+
+# Generate Prisma Client
+RUN npx prisma generate
+
+# Build TypeScript
+RUN npm run build
+
+# Stage 2: Production
+FROM node:20-alpine AS runner
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json package-lock.json* ./
+
+# Install only production dependencies
+RUN npm install --omit=dev
+
+# Copy Prisma schema and generate client
+COPY prisma ./prisma
+RUN npx prisma generate
+
+# Copy built files from builder
+COPY --from=builder /app/dist ./dist
+
+# Expose port (Railway sets PORT automatically)
+EXPOSE ${PORT:-3000}
+
+# Run migrations then start
+CMD ["sh", "-c", "npx prisma db push && node dist/index.js"]
