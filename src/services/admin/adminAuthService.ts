@@ -10,10 +10,10 @@ export const adminAuthService = {
     const valid = await bcrypt.compare(password, admin.passwordHash);
     if (!valid) return null;
     await prisma.admin.update({ where: { id: admin.id }, data: { lastLoginAt: new Date() } });
-    const secret: jwt.Secret = env.adminJwt.secret as string;
-    const token = jwt.sign(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const token = (jwt.sign as any)(
       { id: admin.id, email: admin.email, name: admin.name, role: admin.role },
-      secret,
+      env.adminJwt.secret as string,
       { expiresIn: env.adminJwt.expiresIn as string }
     );
     return {
