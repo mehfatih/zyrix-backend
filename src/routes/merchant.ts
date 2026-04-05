@@ -1,7 +1,6 @@
 // ─────────────────────────────────────────────────────────────
 // Zyrix Backend — Merchant Routes
 // ─────────────────────────────────────────────────────────────
-
 import { Router } from "express";
 import { authenticateToken } from "../middleware/auth";
 import { merchantController } from "../controllers/merchantController";
@@ -10,7 +9,6 @@ import { Request, Response, NextFunction } from "express";
 
 const router = Router();
 
-// All routes require auth
 router.use(authenticateToken);
 
 router.get(
@@ -41,6 +39,12 @@ router.post(
   "/onboarding",
   (req: Request, res: Response, next: NextFunction) =>
     merchantController.completeOnboarding(req as AuthenticatedRequest, res, next)
+);
+
+router.delete(
+  "/account",
+  (req: Request, res: Response, next: NextFunction) =>
+    merchantController.deleteAccount(req as AuthenticatedRequest, res, next)
 );
 
 export default router;
