@@ -79,6 +79,14 @@ enum TransferStatus {
   FAILED
 }
 
+enum CODStatus {
+  PENDING
+  OUT_FOR_DELIVERY
+  COLLECTED
+  FAILED
+  RETURNED
+}
+
 enum InvoiceStatus {
   DRAFT
   SENT
@@ -169,6 +177,7 @@ model Merchant {
   notifications     Notification[]
   apiKeys           ApiKey[]
   webhooks          Webhook[]
+  codOrders         CODOrder[]
   sentTransfers     Transfer[]     @relation("SentTransfers")
   receivedTransfers Transfer[]     @relation("ReceivedTransfers")
   @@map("merchants")
@@ -264,6 +273,25 @@ model Transfer {
   fromMerchant   Merchant       @relation("SentTransfers", fields: [fromMerchantId], references: [id], onDelete: Cascade)
   toMerchant     Merchant       @relation("ReceivedTransfers", fields: [toMerchantId], references: [id], onDelete: Cascade)
   @@map("transfers")
+}
+
+model CODOrder {
+  id               String    @id @default(uuid())
+  merchantId       String
+  orderId          String    @unique
+  customerName     String
+  amount           Decimal   @db.Decimal(18, 2)
+  currency         String    @default("SAR")
+  address          String
+  phone            String?
+  description      String?
+  status           CODStatus @default(PENDING)
+  collectedAmount  Decimal   @default(0) @db.Decimal(18, 2)
+  collectedAt      DateTime?
+  notes            String?
+  createdAt        DateTime  @default(now())
+  merchant         Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  @@map("cod_orders")
 }
 
 model Invoice {
@@ -368,17 +396,17 @@ model ApiKey {
 }
 
 model Webhook {
-  id               String    @id @default(uuid())
-  merchantId       String
-  name             String
-  url              String
-  events           String[]
-  secret           String
-  isActive         Boolean   @default(true)
-  lastTriggeredAt  DateTime?
-  failureCount     Int       @default(0)
-  createdAt        DateTime  @default(now())
-  merchant         Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  id              String    @id @default(uuid())
+  merchantId      String
+  name            String
+  url             String
+  events          String[]
+  secret          String
+  isActive        Boolean   @default(true)
+  lastTriggeredAt DateTime?
+  failureCount    Int       @default(0)
+  createdAt       DateTime  @default(now())
+  merchant        Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   @@map("webhooks")
 }
 
