@@ -25,6 +25,7 @@ import revenueGoalsRoutes from "./routes/revenueGoals";
 import subscriptionsRoutes from "./routes/subscriptions";
 import paymentLinksRoutes from "./routes/paymentLinks";
 import transfersRoutes from "./routes/transfers";
+import apiKeysRoutes from "./routes/apiKeys";
 import adminRoutes from "./routes/admin";
 
 const app = express();
@@ -73,6 +74,7 @@ app.use("/api/revenue-goals", revenueGoalsRoutes);
 app.use("/api/subscriptions", subscriptionsRoutes);
 app.use("/api/payment-links", paymentLinksRoutes);
 app.use("/api/transfers", transfersRoutes);
+app.use("/api/api-keys", apiKeysRoutes);
 app.use("/api/admin", adminRoutes);
 
 // ─── 404 & Error Handlers ─────────────────────────────────────
