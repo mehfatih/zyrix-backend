@@ -17,12 +17,14 @@ import balanceRoutes from "./routes/balance";
 import analyticsRoutes from "./routes/analytics";
 import settlementsRoutes from "./routes/settlements";
 import disputesRoutes from "./routes/disputes";
+import refundsRoutes from "./routes/refunds";
 import notificationsRoutes from "./routes/notifications";
 import invoicesRoutes from "./routes/invoices";
 import expensesRoutes from "./routes/expenses";
 import revenueGoalsRoutes from "./routes/revenueGoals";
 import subscriptionsRoutes from "./routes/subscriptions";
 import paymentLinksRoutes from "./routes/paymentLinks";
+import transfersRoutes from "./routes/transfers";
 import adminRoutes from "./routes/admin";
 
 const app = express();
@@ -63,12 +65,14 @@ app.use("/api/balance", balanceRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/settlements", settlementsRoutes);
 app.use("/api/disputes", disputesRoutes);
+app.use("/api/refunds", refundsRoutes);
 app.use("/api/notifications", notificationsRoutes);
 app.use("/api/invoices", invoicesRoutes);
 app.use("/api/expenses", expensesRoutes);
 app.use("/api/revenue-goals", revenueGoalsRoutes);
 app.use("/api/subscriptions", subscriptionsRoutes);
 app.use("/api/payment-links", paymentLinksRoutes);
+app.use("/api/transfers", transfersRoutes);
 app.use("/api/admin", adminRoutes);
 
 // ─── 404 & Error Handlers ─────────────────────────────────────
@@ -79,18 +83,15 @@ app.use(errorHandler);
 // ─── Start Server ─────────────────────────────────────────────
 
 async function bootstrap(): Promise<void> {
-  // Start server first so healthcheck passes
   app.listen(env.port, () => {
     console.log(`\n🚀 Zyrix Backend running on port ${env.port}`);
   });
 
-  // Then connect to database
   try {
     await prisma.$connect();
     console.log("✅ Database connected");
   } catch (err) {
     console.error("❌ Database connection failed:", err);
-    // Don't exit — let the server keep running
   }
 }
 
