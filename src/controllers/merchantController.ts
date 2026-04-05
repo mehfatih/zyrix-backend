@@ -1,7 +1,6 @@
 // ─────────────────────────────────────────────────────────────
 // Zyrix Backend — Merchant Controller
 // ─────────────────────────────────────────────────────────────
-
 import { Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "../types";
 import { merchantService } from "../services/merchantService";
@@ -16,11 +15,11 @@ const updateProfileSchema = z.object({
 });
 
 const languageSchema = z.object({
-  language: z.enum(["AR", "TR", "EN"]),
+  language: z.enum(["AR", "EN", "TR"]),
 });
 
 const currencySchema = z.object({
-  currency: z.enum(["SAR", "TRY", "USD", "EUR", "AED", "KWD", "QAR"]),
+  currency: z.enum(["SAR", "AED", "KWD", "QAR", "IQD", "USD", "EUR", "TRY"]),
 });
 
 export const merchantController = {
@@ -71,6 +70,15 @@ export const merchantController = {
     try {
       const result = await merchantService.completeOnboarding(req.merchant.id);
       res.json({ success: true, data: result });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async deleteAccount(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      await merchantService.deleteAccount(req.merchant.id);
+      res.json({ success: true, data: { message: "Account deleted successfully" } });
     } catch (err) {
       next(err);
     }
