@@ -167,6 +167,7 @@ model Merchant {
   subscriptions     Subscription[]
   paymentLinks      PaymentLink[]
   notifications     Notification[]
+  apiKeys           ApiKey[]
   sentTransfers     Transfer[]     @relation("SentTransfers")
   receivedTransfers Transfer[]     @relation("ReceivedTransfers")
   @@map("merchants")
@@ -350,6 +351,19 @@ model Notification {
   createdAt  DateTime         @default(now())
   merchant   Merchant         @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   @@map("notifications")
+}
+
+model ApiKey {
+  id         String    @id @default(uuid())
+  merchantId String
+  name       String
+  keyHash    String    @unique
+  keyPrefix  String
+  isActive   Boolean   @default(true)
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+  merchant   Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  @@map("api_keys")
 }
 
 model OtpCode {
