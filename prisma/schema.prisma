@@ -168,6 +168,7 @@ model Merchant {
   paymentLinks      PaymentLink[]
   notifications     Notification[]
   apiKeys           ApiKey[]
+  webhooks          Webhook[]
   sentTransfers     Transfer[]     @relation("SentTransfers")
   receivedTransfers Transfer[]     @relation("ReceivedTransfers")
   @@map("merchants")
@@ -364,6 +365,21 @@ model ApiKey {
   createdAt  DateTime  @default(now())
   merchant   Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   @@map("api_keys")
+}
+
+model Webhook {
+  id               String    @id @default(uuid())
+  merchantId       String
+  name             String
+  url              String
+  events           String[]
+  secret           String
+  isActive         Boolean   @default(true)
+  lastTriggeredAt  DateTime?
+  failureCount     Int       @default(0)
+  createdAt        DateTime  @default(now())
+  merchant         Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  @@map("webhooks")
 }
 
 model OtpCode {
