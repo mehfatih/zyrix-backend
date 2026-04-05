@@ -25,6 +25,7 @@ enum Currency {
   AED
   KWD
   QAR
+  IQD
 }
 
 enum MerchantStatus {
@@ -64,6 +65,18 @@ enum DisputeStatus {
   UNDER_REVIEW
   RESOLVED
   ESCALATED
+}
+
+enum RefundStatus {
+  PROCESSING
+  COMPLETED
+  REJECTED
+}
+
+enum TransferStatus {
+  PENDING
+  COMPLETED
+  FAILED
 }
 
 enum InvoiceStatus {
@@ -151,12 +164,15 @@ model Merchant {
   transactions    Transaction[]
   settlements     Settlement[]
   disputes        Dispute[]
+  refunds         Refund[]
   invoices        Invoice[]
   expenses        Expense[]
   revenueGoals    RevenueGoal[]
   subscriptions   Subscription[]
   paymentLinks    PaymentLink[]
   notifications   Notification[]
+  sentTransfers   Transfer[]     @relation("SentTransfers")
+  receivedTransfers Transfer[]   @relation("ReceivedTransfers")
   @@map("merchants")
 }
 
@@ -180,6 +196,7 @@ model Transaction {
   updatedAt       DateTime          @updatedAt
   merchant        Merchant          @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   disputes        Dispute[]
+  refunds         Refund[]
   @@map("transactions")
 }
 
@@ -217,6 +234,38 @@ model Dispute {
   merchant        Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   transaction     Transaction   @relation(fields: [transactionId], references: [id])
   @@map("disputes")
+}
+
+model Refund {
+  id              String       @id @default(uuid())
+  merchantId      String
+  transactionId   String
+  refundId        String       @unique
+  amount          Decimal      @db.Decimal(18, 2)
+  currency        String
+  reason          String
+  status          RefundStatus @default(PROCESSING)
+  completedAt     DateTime?
+  createdAt       DateTime     @default(now())
+  merchant        Merchant     @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  transaction     Transaction  @relation(fields: [transactionId], references: [id])
+  @@map("refunds")
+}
+
+model Transfer {
+  id               String         @id @default(uuid())
+  transferId       String         @unique
+  fromMerchantId   String
+  toMerchantId     String
+  amount           Decimal        @db.Decimal(18, 2)
+  currency         String
+  description      String?
+  status           TransferStatus @default(PENDING)
+  createdAt        DateTime       @default(now())
+  completedAt      DateTime?
+  fromMerchant     Merchant       @relation("SentTransfers", fields: [fromMerchantId], references: [id], onDelete: Cascade)
+  toMerchant       Merchant       @relation("ReceivedTransfers", fields: [toMerchantId], references: [id], onDelete: Cascade)
+  @@map("transfers")
 }
 
 model Invoice {
@@ -312,8 +361,8 @@ model OtpCode {
   phone       String
   code        String
   expiresAt   DateTime
-  attempts    Int       @default(0)
   verified    Boolean   @default(false)
+  attempts    Int       @default(0)
   createdAt   DateTime  @default(now())
   @@map("otp_codes")
 }
