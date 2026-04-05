@@ -126,8 +126,6 @@ enum AdminRole {
   FINANCE
 }
 
-// ─── Admin Model ──────────────────────────────────────────────
-
 model Admin {
   id           String    @id @default(uuid())
   email        String    @unique
@@ -141,228 +139,226 @@ model Admin {
   @@map("admins")
 }
 
-// ─── Merchant & Relations ─────────────────────────────────────
-
 model Merchant {
-  id              String         @id @default(uuid())
-  name            String
-  email           String         @unique
-  phone           String         @unique
-  passwordHash    String?
-  merchantId      String         @unique
-  language        Language       @default(EN)
-  currency        Currency       @default(SAR)
-  status          MerchantStatus @default(ACTIVE)
-  kycStatus       KycStatus      @default(PENDING)
-  businessName    String?
-  businessType    String?
-  country         String
-  timezone        String         @default("UTC")
-  onboardingDone  Boolean        @default(false)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  transactions    Transaction[]
-  settlements     Settlement[]
-  disputes        Dispute[]
-  refunds         Refund[]
-  invoices        Invoice[]
-  expenses        Expense[]
-  revenueGoals    RevenueGoal[]
-  subscriptions   Subscription[]
-  paymentLinks    PaymentLink[]
-  notifications   Notification[]
-  sentTransfers   Transfer[]     @relation("SentTransfers")
-  receivedTransfers Transfer[]   @relation("ReceivedTransfers")
+  id                String         @id @default(uuid())
+  name              String
+  email             String         @unique
+  phone             String         @unique
+  passwordHash      String?
+  merchantId        String         @unique
+  language          Language       @default(EN)
+  currency          Currency       @default(SAR)
+  status            MerchantStatus @default(ACTIVE)
+  kycStatus         KycStatus      @default(PENDING)
+  businessName      String?
+  businessType      String?
+  country           String
+  timezone          String         @default("UTC")
+  onboardingDone    Boolean        @default(false)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  transactions      Transaction[]
+  settlements       Settlement[]
+  disputes          Dispute[]
+  refunds           Refund[]
+  invoices          Invoice[]
+  expenses          Expense[]
+  revenueGoals      RevenueGoal[]
+  subscriptions     Subscription[]
+  paymentLinks      PaymentLink[]
+  notifications     Notification[]
+  sentTransfers     Transfer[]     @relation("SentTransfers")
+  receivedTransfers Transfer[]     @relation("ReceivedTransfers")
   @@map("merchants")
 }
 
 model Transaction {
-  id              String            @id @default(uuid())
-  merchantId      String
-  transactionId   String            @unique
-  amount          Decimal           @db.Decimal(18, 2)
-  currency        String
-  status          TransactionStatus
-  method          PaymentMethod
-  customerName    String
-  customerEmail   String?
-  customerPhone   String?
-  country         String
-  flag            String
-  isCredit        Boolean
-  description     String?
-  metadata        Json?
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  merchant        Merchant          @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  disputes        Dispute[]
-  refunds         Refund[]
+  id            String            @id @default(uuid())
+  merchantId    String
+  transactionId String            @unique
+  amount        Decimal           @db.Decimal(18, 2)
+  currency      String
+  status        TransactionStatus
+  method        PaymentMethod
+  customerName  String
+  customerEmail String?
+  customerPhone String?
+  country       String
+  flag          String
+  isCredit      Boolean
+  description   String?
+  metadata      Json?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  merchant      Merchant          @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  disputes      Dispute[]
+  refunds       Refund[]
   @@map("transactions")
 }
 
 model Settlement {
-  id              String           @id @default(uuid())
-  merchantId      String
-  settlementId    String           @unique
-  amount          Decimal          @db.Decimal(18, 2)
-  commission      Decimal          @db.Decimal(18, 2)
-  netAmount       Decimal          @db.Decimal(18, 2)
-  currency        String
-  status          SettlementStatus
-  bankName        String
-  bankAccount     String
-  scheduledDate   DateTime
-  completedDate   DateTime?
-  createdAt       DateTime         @default(now())
-  merchant        Merchant         @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  id            String           @id @default(uuid())
+  merchantId    String
+  settlementId  String           @unique
+  amount        Decimal          @db.Decimal(18, 2)
+  commission    Decimal          @db.Decimal(18, 2)
+  netAmount     Decimal          @db.Decimal(18, 2)
+  currency      String
+  status        SettlementStatus
+  bankName      String
+  bankAccount   String
+  scheduledDate DateTime
+  completedDate DateTime?
+  createdAt     DateTime         @default(now())
+  merchant      Merchant         @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   @@map("settlements")
 }
 
 model Dispute {
-  id              String        @id @default(uuid())
-  merchantId      String
-  transactionId   String
-  disputeId       String        @unique
-  reason          String
-  amount          Decimal       @db.Decimal(18, 2)
-  currency        String
-  status          DisputeStatus
-  resolution      String?
-  evidence        Json?
-  createdAt       DateTime      @default(now())
-  resolvedAt      DateTime?
-  merchant        Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  transaction     Transaction   @relation(fields: [transactionId], references: [id])
+  id            String        @id @default(uuid())
+  merchantId    String
+  transactionId String
+  disputeId     String        @unique
+  reason        String
+  amount        Decimal       @db.Decimal(18, 2)
+  currency      String
+  status        DisputeStatus
+  resolution    String?
+  evidence      Json?
+  createdAt     DateTime      @default(now())
+  resolvedAt    DateTime?
+  merchant      Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  transaction   Transaction   @relation(fields: [transactionId], references: [id])
   @@map("disputes")
 }
 
 model Refund {
-  id              String       @id @default(uuid())
-  merchantId      String
-  transactionId   String
-  refundId        String       @unique
-  amount          Decimal      @db.Decimal(18, 2)
-  currency        String
-  reason          String
-  status          RefundStatus @default(PROCESSING)
-  completedAt     DateTime?
-  createdAt       DateTime     @default(now())
-  merchant        Merchant     @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  transaction     Transaction  @relation(fields: [transactionId], references: [id])
+  id            String       @id @default(uuid())
+  merchantId    String
+  transactionId String
+  refundId      String       @unique
+  amount        Decimal      @db.Decimal(18, 2)
+  currency      String
+  reason        String
+  status        RefundStatus @default(PROCESSING)
+  completedAt   DateTime?
+  createdAt     DateTime     @default(now())
+  merchant      Merchant     @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  transaction   Transaction  @relation(fields: [transactionId], references: [id])
   @@map("refunds")
 }
 
 model Transfer {
-  id               String         @id @default(uuid())
-  transferId       String         @unique
-  fromMerchantId   String
-  toMerchantId     String
-  amount           Decimal        @db.Decimal(18, 2)
-  currency         String
-  description      String?
-  status           TransferStatus @default(PENDING)
-  createdAt        DateTime       @default(now())
-  completedAt      DateTime?
-  fromMerchant     Merchant       @relation("SentTransfers", fields: [fromMerchantId], references: [id], onDelete: Cascade)
-  toMerchant       Merchant       @relation("ReceivedTransfers", fields: [toMerchantId], references: [id], onDelete: Cascade)
+  id             String         @id @default(uuid())
+  transferId     String         @unique
+  fromMerchantId String
+  toMerchantId   String
+  amount         Decimal        @db.Decimal(18, 2)
+  currency       String
+  description    String?
+  status         TransferStatus @default(PENDING)
+  createdAt      DateTime       @default(now())
+  completedAt    DateTime?
+  fromMerchant   Merchant       @relation("SentTransfers", fields: [fromMerchantId], references: [id], onDelete: Cascade)
+  toMerchant     Merchant       @relation("ReceivedTransfers", fields: [toMerchantId], references: [id], onDelete: Cascade)
   @@map("transfers")
 }
 
 model Invoice {
-  id              String        @id @default(uuid())
-  merchantId      String
-  invoiceId       String        @unique
-  customerName    String
-  total           Decimal       @db.Decimal(18, 2)
-  currency        String
-  status          InvoiceStatus
-  items           Json
-  dueDate         DateTime
-  paidDate        DateTime?
-  createdAt       DateTime      @default(now())
-  merchant        Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  id           String        @id @default(uuid())
+  merchantId   String
+  invoiceId    String        @unique
+  customerName String
+  total        Decimal       @db.Decimal(18, 2)
+  currency     String
+  status       InvoiceStatus
+  items        Json
+  dueDate      DateTime
+  paidDate     DateTime?
+  createdAt    DateTime      @default(now())
+  merchant     Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   @@map("invoices")
 }
 
 model Expense {
-  id              String    @id @default(uuid())
-  merchantId      String
-  category        String
-  description     String
-  amount          Decimal   @db.Decimal(18, 2)
-  currency        String
-  date            DateTime
-  createdAt       DateTime  @default(now())
-  merchant        Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  id          String   @id @default(uuid())
+  merchantId  String
+  category    String
+  description String
+  amount      Decimal  @db.Decimal(18, 2)
+  currency    String
+  date        DateTime
+  createdAt   DateTime @default(now())
+  merchant    Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   @@map("expenses")
 }
 
 model RevenueGoal {
-  id              String     @id @default(uuid())
-  merchantId      String
-  name            String
-  targetAmount    Decimal    @db.Decimal(18, 2)
-  currentAmount   Decimal    @default(0) @db.Decimal(18, 2)
-  currency        String
-  period          GoalPeriod
-  startDate       DateTime
-  endDate         DateTime
-  createdAt       DateTime   @default(now())
-  merchant        Merchant   @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  id            String     @id @default(uuid())
+  merchantId    String
+  name          String
+  targetAmount  Decimal    @db.Decimal(18, 2)
+  currentAmount Decimal    @default(0) @db.Decimal(18, 2)
+  currency      String
+  period        GoalPeriod
+  startDate     DateTime
+  endDate       DateTime
+  createdAt     DateTime   @default(now())
+  merchant      Merchant   @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   @@map("revenue_goals")
 }
 
 model Subscription {
-  id                  String      @id @default(uuid())
-  merchantId          String
-  planName            String
-  amount              Decimal     @db.Decimal(18, 2)
-  currency            String
-  interval            SubInterval
-  status              SubStatus
-  currentPeriodStart  DateTime
-  currentPeriodEnd    DateTime
-  createdAt           DateTime    @default(now())
-  merchant            Merchant    @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  id                 String      @id @default(uuid())
+  merchantId         String
+  planName           String
+  amount             Decimal     @db.Decimal(18, 2)
+  currency           String
+  interval           SubInterval
+  status             SubStatus
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  createdAt          DateTime    @default(now())
+  merchant           Merchant    @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   @@map("subscriptions")
 }
 
 model PaymentLink {
-  id              String     @id @default(uuid())
-  merchantId      String
-  linkId          String     @unique
-  title           String
-  amount          Decimal    @db.Decimal(18, 2)
-  currency        String
-  url             String
-  status          LinkStatus
-  expiresAt       DateTime?
-  usageCount      Int        @default(0)
-  createdAt       DateTime   @default(now())
-  merchant        Merchant   @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  id         String     @id @default(uuid())
+  merchantId String
+  linkId     String     @unique
+  title      String
+  amount     Decimal    @db.Decimal(18, 2)
+  currency   String
+  url        String
+  status     LinkStatus
+  expiresAt  DateTime?
+  usageCount Int        @default(0)
+  createdAt  DateTime   @default(now())
+  merchant   Merchant   @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   @@map("payment_links")
 }
 
 model Notification {
-  id              String           @id @default(uuid())
-  merchantId      String
-  title           String
-  body            String
-  type            NotificationType
-  isRead          Boolean          @default(false)
-  data            Json?
-  createdAt       DateTime         @default(now())
-  merchant        Merchant         @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  id         String           @id @default(uuid())
+  merchantId String
+  title      String
+  body       String
+  type       NotificationType
+  isRead     Boolean          @default(false)
+  data       Json?
+  createdAt  DateTime         @default(now())
+  merchant   Merchant         @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   @@map("notifications")
 }
 
 model OtpCode {
-  id          String    @id @default(uuid())
-  phone       String
-  code        String
-  expiresAt   DateTime
-  verified    Boolean   @default(false)
-  attempts    Int       @default(0)
-  createdAt   DateTime  @default(now())
+  id        String   @id @default(uuid())
+  phone     String
+  code      String
+  expiresAt DateTime
+  verified  Boolean  @default(false)
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
   @@map("otp_codes")
 }
