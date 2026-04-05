@@ -99,6 +99,8 @@ export const merchantService = {
       prisma.invoice.deleteMany({ where: { merchantId } }),
       prisma.expense.deleteMany({ where: { merchantId } }),
       prisma.revenueGoal.deleteMany({ where: { merchantId } }),
+      prisma.transfer.deleteMany({ where: { fromMerchantId: merchantId } }),
+      prisma.transfer.deleteMany({ where: { toMerchantId: merchantId } }),
       prisma.merchant.delete({ where: { id: merchantId } }),
     ]);
     return { success: true };
