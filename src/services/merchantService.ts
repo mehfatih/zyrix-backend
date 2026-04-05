@@ -1,7 +1,6 @@
 // ─────────────────────────────────────────────────────────────
 // Zyrix Backend — Merchant Service
 // ─────────────────────────────────────────────────────────────
-
 import { prisma } from "../config/database";
 import { Language, Currency } from "@prisma/client";
 
@@ -86,5 +85,22 @@ export const merchantService = {
       data: { onboardingDone: true },
       select: { id: true, onboardingDone: true },
     });
+  },
+
+  async deleteAccount(merchantId: string) {
+    await prisma.$transaction([
+      prisma.notification.deleteMany({ where: { merchantId } }),
+      prisma.dispute.deleteMany({ where: { merchantId } }),
+      prisma.refund.deleteMany({ where: { merchantId } }),
+      prisma.transaction.deleteMany({ where: { merchantId } }),
+      prisma.settlement.deleteMany({ where: { merchantId } }),
+      prisma.paymentLink.deleteMany({ where: { merchantId } }),
+      prisma.subscription.deleteMany({ where: { merchantId } }),
+      prisma.invoice.deleteMany({ where: { merchantId } }),
+      prisma.expense.deleteMany({ where: { merchantId } }),
+      prisma.revenueGoal.deleteMany({ where: { merchantId } }),
+      prisma.merchant.delete({ where: { id: merchantId } }),
+    ]);
+    return { success: true };
   },
 };
