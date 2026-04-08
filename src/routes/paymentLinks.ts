@@ -8,6 +8,18 @@ import { paymentLinksController } from "../controllers/paymentLinksController";
 import { AuthenticatedRequest } from "../types";
 
 const router = Router();
+
+// ── Public routes (NO auth) ──────────────────────────────────
+// Used by landing page: pay.zyrix.co / zyrix.co/[locale]/pay/[linkId]
+
+router.get("/public/:linkId", (req: Request, res: Response, next: NextFunction) =>
+  paymentLinksController.getPublic(req, res, next));
+
+router.post("/public/:linkId/pay", (req: Request, res: Response, next: NextFunction) =>
+  paymentLinksController.pay(req, res, next));
+
+// ── Merchant routes (auth required) ─────────────────────────
+
 router.use(authenticateToken);
 
 router.get("/", (req: Request, res: Response, next: NextFunction) =>
