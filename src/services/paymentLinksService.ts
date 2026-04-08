@@ -101,7 +101,7 @@ export const paymentLinksService = {
       where: { linkId },
       select: {
         ...linkSelect,
-        merchant: { select: { name: true, company: true } },
+        merchant: { select: { name: true, businessName: true } },
       },
     });
     if (!link) return null;
@@ -124,7 +124,7 @@ export const paymentLinksService = {
       faqs: link.faqs ? JSON.parse(link.faqs) : [],
       merchant: {
         name: (link as any).merchant?.name ?? "",
-        company: (link as any).merchant?.company ?? "",
+        company: ((link as any).merchant?.businessName ?? (link as any).merchant?.name ?? ""),
         verified: true,
       },
     };
