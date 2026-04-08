@@ -354,19 +354,46 @@ model Subscription {
 }
 
 model PaymentLink {
-  id         String     @id @default(uuid())
-  merchantId String
-  linkId     String     @unique
-  title      String
-  amount     Decimal    @db.Decimal(18, 2)
-  currency   String
-  url        String
-  status     LinkStatus
-  expiresAt  DateTime?
-  usageCount Int        @default(0)
-  createdAt  DateTime   @default(now())
-  merchant   Merchant   @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  id          String        @id @default(uuid())
+  merchantId  String
+  linkId      String        @unique
+  title       String
+  description String?
+  amount      Decimal?      @db.Decimal(18, 2)
+  minAmount   Decimal?      @db.Decimal(18, 2)
+  maxAmount   Decimal?      @db.Decimal(18, 2)
+  currency    String
+  url         String
+  status      LinkStatus
+  expiresAt   DateTime?
+  usageCount  Int           @default(0)
+  paidCount   Int           @default(0)
+  features    String?
+  faqs        String?
+  allowNote   Boolean       @default(false)
+  showQr      Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  merchant    Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  payments    LinkPayment[]
   @@map("payment_links")
+}
+
+model LinkPayment {
+  id          String      @id @default(uuid())
+  linkId      String
+  paymentLink PaymentLink @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  txId        String      @unique
+  amount      Decimal     @db.Decimal(18, 2)
+  currency    String
+  payerName   String
+  payerPhone  String
+  payerNote   String?
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  status      String      @default("COMPLETED")
+  createdAt   DateTime    @default(now())
+  @@map("link_payments")
 }
 
 model Notification {
