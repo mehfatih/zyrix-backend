@@ -1,23 +1,23 @@
 // ─────────────────────────────────────────────────────────────
 // Zyrix Backend — Team Management Controller
 // ─────────────────────────────────────────────────────────────
-
-import { Request, Response, NextFunction } from "express";
+import { Response, NextFunction } from "express";
+import { AuthenticatedRequest } from "../types";
 import { prisma } from "../config/database";
 import crypto from "crypto";
 
 // ── GET /api/team ─────────────────────────────────────────────
 export async function listTeamMembers(
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> {
   try {
-    const merchantId = req.merchant!.id;
+    const merchantId = req.merchant.id;
 
     const members = await prisma.teamMember.findMany({
       where: { merchantId },
-      orderBy: { createdAt: "desc" },
+      orderBy: { invitedAt: "desc" },
       select: {
         id: true,
         name: true,
@@ -25,7 +25,7 @@ export async function listTeamMembers(
         role: true,
         status: true,
         joinedAt: true,
-        createdAt: true,
+        invitedAt: true,
       },
     });
 
@@ -37,15 +37,14 @@ export async function listTeamMembers(
 
 // ── POST /api/team/invite ─────────────────────────────────────
 export async function inviteTeamMember(
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> {
   try {
-    const merchantId = req.merchant!.id;
+    const merchantId = req.merchant.id;
     const { name, email, role } = req.body;
 
-    // Check if member already exists
     const existing = await prisma.teamMember.findUnique({
       where: { merchantId_email: { merchantId, email } },
     });
@@ -58,7 +57,6 @@ export async function inviteTeamMember(
       return;
     }
 
-    // Generate invite token
     const inviteToken = crypto.randomBytes(32).toString("hex");
 
     const member = await prisma.teamMember.create({
@@ -77,12 +75,9 @@ export async function inviteTeamMember(
         role: true,
         status: true,
         inviteToken: true,
-        createdAt: true,
+        invitedAt: true,
       },
     });
-
-    // TODO: Send invitation email with inviteToken
-    // await emailService.sendInvite({ email, name, token: inviteToken, merchantId })
 
     res.status(201).json({
       success: true,
@@ -99,12 +94,12 @@ export async function inviteTeamMember(
 
 // ── PATCH /api/team/:memberId ─────────────────────────────────
 export async function updateTeamMember(
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> {
   try {
-    const merchantId = req.merchant!.id;
+    const merchantId = req.merchant.id;
     const { memberId } = req.params;
     const { role, status } = req.body;
 
@@ -145,12 +140,12 @@ export async function updateTeamMember(
 
 // ── DELETE /api/team/:memberId ────────────────────────────────
 export async function removeTeamMember(
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> {
   try {
-    const merchantId = req.merchant!.id;
+    const merchantId = req.merchant.id;
     const { memberId } = req.params;
 
     const existing = await prisma.teamMember.findFirst({
@@ -175,7 +170,7 @@ export async function removeTeamMember(
 
 // ── POST /api/team/accept ─────────────────────────────────────
 export async function acceptInvite(
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> {
@@ -223,10 +218,7 @@ export async function acceptInvite(
 
     res.json({
       success: true,
-      data: {
-        member: updated,
-        message: "Invite accepted successfully",
-      },
+      data: { member: updated, message: "Invite accepted successfully" },
     });
   } catch (err) {
     next(err);
