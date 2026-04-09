@@ -1,8 +1,16 @@
 import { Request, Response } from "express";
 import { prisma } from "../config/database";
-import { nanoid } from "nanoid";
 
-// ─── List all checkouts for merchant ─────────────────────────
+function generateId(prefix: string, length: number): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let result = prefix;
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
+// ─── List checkouts ───────────────────────────────────────────
 export async function listCheckouts(req: Request, res: Response) {
   try {
     const merchantId = (req as any).merchant?.id;
@@ -25,7 +33,7 @@ export async function listCheckouts(req: Request, res: Response) {
       },
     });
     return res.json({ success: true, data: { checkouts } });
-  } catch (err) {
+  } catch {
     return res.status(500).json({ success: false, error: "Server error" });
   }
 }
@@ -35,35 +43,25 @@ export async function createCheckout(req: Request, res: Response) {
   try {
     const merchantId = (req as any).merchant?.id;
     const {
-      name,
-      description,
-      logoUrl,
-      brandColor,
-      theme,
-      currency,
-      allowedCurrencies,
-      allowedMethods,
-      requirePhone,
-      requireAddress,
-      allowNote,
-      successUrl,
-      cancelUrl,
-      webhookUrl,
+      name, description, logoUrl, brandColor, theme,
+      currency, allowedCurrencies, allowedMethods,
+      requirePhone, requireAddress, allowNote,
+      successUrl, cancelUrl, webhookUrl,
     } = req.body;
 
     if (!name) {
       return res.status(400).json({ success: false, error: "name is required" });
     }
 
-    const checkoutId = "ZRX-CHK-" + nanoid(8).toUpperCase();
+    const checkoutId = generateId("ZRX-CHK-", 8);
 
     const checkout = await prisma.hostedCheckout.create({
       data: {
         merchantId,
         checkoutId,
         name,
-        description,
-        logoUrl,
+        description:       description       || null,
+        logoUrl:           logoUrl           || null,
         brandColor:        brandColor        || "#1A56DB",
         theme:             theme             || "DARK",
         currency:          currency          || "SAR",
@@ -72,9 +70,9 @@ export async function createCheckout(req: Request, res: Response) {
         requirePhone:      requirePhone      ?? false,
         requireAddress:    requireAddress    ?? false,
         allowNote:         allowNote         ?? false,
-        successUrl,
-        cancelUrl,
-        webhookUrl,
+        successUrl:        successUrl        || null,
+        cancelUrl:         cancelUrl         || null,
+        webhookUrl:        webhookUrl        || null,
       },
     });
 
@@ -85,12 +83,12 @@ export async function createCheckout(req: Request, res: Response) {
         checkoutUrl: `https://pay.zyrix.co/checkout/${checkoutId}`,
       },
     });
-  } catch (err) {
+  } catch {
     return res.status(500).json({ success: false, error: "Server error" });
   }
 }
 
-// ─── Get single checkout ──────────────────────────────────────
+// ─── Get checkout ─────────────────────────────────────────────
 export async function getCheckout(req: Request, res: Response) {
   try {
     const merchantId = (req as any).merchant?.id;
@@ -111,7 +109,7 @@ export async function getCheckout(req: Request, res: Response) {
     }
 
     return res.json({ success: true, data: { checkout } });
-  } catch (err) {
+  } catch {
     return res.status(500).json({ success: false, error: "Server error" });
   }
 }
@@ -131,21 +129,10 @@ export async function updateCheckout(req: Request, res: Response) {
     }
 
     const {
-      name,
-      description,
-      logoUrl,
-      brandColor,
-      theme,
-      currency,
-      allowedCurrencies,
-      allowedMethods,
-      requirePhone,
-      requireAddress,
-      allowNote,
-      successUrl,
-      cancelUrl,
-      webhookUrl,
-      isActive,
+      name, description, logoUrl, brandColor, theme,
+      currency, allowedCurrencies, allowedMethods,
+      requirePhone, requireAddress, allowNote,
+      successUrl, cancelUrl, webhookUrl, isActive,
     } = req.body;
 
     const updated = await prisma.hostedCheckout.update({
@@ -170,7 +157,7 @@ export async function updateCheckout(req: Request, res: Response) {
     });
 
     return res.json({ success: true, data: { checkout: updated } });
-  } catch (err) {
+  } catch {
     return res.status(500).json({ success: false, error: "Server error" });
   }
 }
@@ -192,7 +179,7 @@ export async function deleteCheckout(req: Request, res: Response) {
     await prisma.hostedCheckout.delete({ where: { id } });
 
     return res.json({ success: true, data: { message: "Checkout deleted" } });
-  } catch (err) {
+  } catch {
     return res.status(500).json({ success: false, error: "Server error" });
   }
 }
@@ -202,14 +189,8 @@ export async function createSession(req: Request, res: Response) {
   try {
     const { checkoutId } = req.params;
     const {
-      amount,
-      currency,
-      customerName,
-      customerEmail,
-      customerPhone,
-      customerAddress,
-      customerNote,
-      metadata,
+      amount, currency, customerName, customerEmail,
+      customerPhone, customerAddress, customerNote, metadata,
     } = req.body;
 
     const checkout = await prisma.hostedCheckout.findFirst({
@@ -224,8 +205,8 @@ export async function createSession(req: Request, res: Response) {
       return res.status(400).json({ success: false, error: "amount is required" });
     }
 
-    const sessionId = "ZRX-SES-" + nanoid(10).toUpperCase();
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    const sessionId = generateId("ZRX-SES-", 10);
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
     const session = await prisma.checkoutSession.create({
       data: {
@@ -233,12 +214,12 @@ export async function createSession(req: Request, res: Response) {
         checkoutId: checkout.id,
         amount,
         currency:        currency        || checkout.currency,
-        customerName,
-        customerEmail,
-        customerPhone,
-        customerAddress,
-        customerNote,
-        metadata,
+        customerName:    customerName    || null,
+        customerEmail:   customerEmail   || null,
+        customerPhone:   customerPhone   || null,
+        customerAddress: customerAddress || null,
+        customerNote:    customerNote    || null,
+        metadata:        metadata        || null,
         expiresAt,
       },
     });
@@ -256,7 +237,7 @@ export async function createSession(req: Request, res: Response) {
         expiresAt,
       },
     });
-  } catch (err) {
+  } catch {
     return res.status(500).json({ success: false, error: "Server error" });
   }
 }
@@ -301,7 +282,7 @@ export async function getSession(req: Request, res: Response) {
     }
 
     return res.json({ success: true, data: { session } });
-  } catch (err) {
+  } catch {
     return res.status(500).json({ success: false, error: "Server error" });
   }
 }
