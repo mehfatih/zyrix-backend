@@ -1,5 +1,8 @@
+// ─────────────────────────────────────────────────────────────
+// Zyrix Backend — Hosted Checkout Routes
+// ─────────────────────────────────────────────────────────────
 import { Router } from "express";
-import { authenticate } from "../middleware/auth";
+import { authenticateToken } from "../middleware/auth";
 import {
   createCheckout,
   listCheckouts,
@@ -13,11 +16,11 @@ import {
 const router = Router();
 
 // ─── Merchant routes (authenticated) ─────────────────────────
-router.get("/",    authenticate, listCheckouts);
-router.post("/",   authenticate, createCheckout);
-router.get("/:id", authenticate, getCheckout);
-router.put("/:id", authenticate, updateCheckout);
-router.delete("/:id", authenticate, deleteCheckout);
+router.get("/",       authenticateToken, listCheckouts);
+router.post("/",      authenticateToken, createCheckout);
+router.get("/:id",    authenticateToken, getCheckout);
+router.put("/:id",    authenticateToken, updateCheckout);
+router.delete("/:id", authenticateToken, deleteCheckout);
 
 // ─── Public routes (for customer payment page) ────────────────
 router.post("/:checkoutId/sessions", createSession);
