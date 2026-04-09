@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// Zyrix Payment Gateway — Prisma Schema (with Admin)
+// Zyrix Payment Gateway — Prisma Schema (with TeamMember)
 // ─────────────────────────────────────────────────────────────
 
 generator client {
@@ -134,6 +134,19 @@ enum AdminRole {
   FINANCE
 }
 
+enum TeamMemberRole {
+  ADMIN
+  MANAGER
+  ACCOUNTANT
+  VIEWER
+}
+
+enum TeamMemberStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+}
+
 model Admin {
   id           String    @id @default(uuid())
   email        String    @unique
@@ -178,6 +191,7 @@ model Merchant {
   apiKeys           ApiKey[]
   webhooks          Webhook[]
   codOrders         CODOrder[]
+  teamMembers       TeamMember[]
   sentTransfers     Transfer[]     @relation("SentTransfers")
   receivedTransfers Transfer[]     @relation("ReceivedTransfers")
   @@map("merchants")
@@ -446,4 +460,20 @@ model OtpCode {
   attempts  Int      @default(0)
   createdAt DateTime @default(now())
   @@map("otp_codes")
+}
+
+model TeamMember {
+  id          String           @id @default(uuid())
+  merchantId  String
+  name        String
+  email       String
+  role        TeamMemberRole   @default(VIEWER)
+  status      TeamMemberStatus @default(INVITED)
+  inviteToken String?          @unique
+  joinedAt    DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  merchant    Merchant         @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  @@unique([merchantId, email])
+  @@map("team_members")
 }
