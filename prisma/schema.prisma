@@ -1,6 +1,5 @@
 // ─────────────────────────────────────────────────────────────
 // Zyrix Payment Gateway — Prisma Schema
-// Updated: Transaction Engine (RetryLog + ReconciliationReport + EventLog)
 // ─────────────────────────────────────────────────────────────
 
 generator client {
@@ -181,8 +180,6 @@ enum PaymentMethodStatus {
   PENDING_SETUP
 }
 
-// ─── NEW: Transaction Engine Enums ───────────────────────────
-
 enum RetryStatus {
   PENDING
   SUCCESS
@@ -225,23 +222,23 @@ model Admin {
 }
 
 model Merchant {
-  id                   String                @id @default(uuid())
+  id                   String                 @id @default(uuid())
   name                 String
-  email                String                @unique
-  phone                String                @unique
+  email                String                 @unique
+  phone                String                 @unique
   passwordHash         String?
-  merchantId           String                @unique
-  language             Language              @default(EN)
-  currency             Currency              @default(SAR)
-  status               MerchantStatus        @default(ACTIVE)
-  kycStatus            KycStatus             @default(PENDING)
+  merchantId           String                 @unique
+  language             Language               @default(EN)
+  currency             Currency               @default(SAR)
+  status               MerchantStatus         @default(ACTIVE)
+  kycStatus            KycStatus              @default(PENDING)
   businessName         String?
   businessType         String?
   country              String
-  timezone             String                @default("UTC")
-  onboardingDone       Boolean               @default(false)
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
+  timezone             String                 @default("UTC")
+  onboardingDone       Boolean                @default(false)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
   transactions         Transaction[]
   settlements          Settlement[]
   disputes             Dispute[]
@@ -260,10 +257,25 @@ model Merchant {
   paymentMethodConfigs PaymentMethodConfig[]
   reconciliations      ReconciliationReport[]
   eventLogs            EventLog[]
-  sentTransfers        Transfer[]            @relation("SentTransfers")
-  receivedTransfers    Transfer[]            @relation("ReceivedTransfers")
+  otpCodes             OtpCode[]
+  sentTransfers        Transfer[]             @relation("SentTransfers")
+  receivedTransfers    Transfer[]             @relation("ReceivedTransfers")
 
   @@map("merchants")
+}
+
+model OtpCode {
+  id         String    @id @default(uuid())
+  phone      String
+  code       String
+  expiresAt  DateTime
+  verified   Boolean   @default(false)
+  attempts   Int       @default(0)
+  merchantId String?
+  createdAt  DateTime  @default(now())
+  merchant   Merchant? @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("otp_codes")
 }
 
 model PaymentMethodConfig {
@@ -317,8 +329,6 @@ model Transaction {
   @@map("transactions")
 }
 
-// ─── NEW: Smart Retry ─────────────────────────────────────────
-
 model RetryLog {
   id            String      @id @default(uuid())
   transactionId String
@@ -333,34 +343,30 @@ model RetryLog {
   @@map("retry_logs")
 }
 
-// ─── NEW: Reconciliation Report ──────────────────────────────
-
 model ReconciliationReport {
-  id                   String               @id @default(uuid())
-  merchantId           String
-  reportId             String               @unique
-  periodStart          DateTime
-  periodEnd            DateTime
-  totalTransactions    Int
-  successCount         Int
-  failedCount          Int
-  pendingCount         Int
-  grossVolume          Decimal              @db.Decimal(18, 2)
-  totalRefunds         Decimal              @db.Decimal(18, 2)
-  totalSettlements     Decimal              @db.Decimal(18, 2)
-  totalFees            Decimal              @db.Decimal(18, 2)
-  netBalance           Decimal              @db.Decimal(18, 2)
-  discrepancyAmount    Decimal              @default(0) @db.Decimal(18, 2)
-  status               ReconciliationStatus @default(PENDING)
-  currency             String               @default("SAR")
-  notes                String?
-  createdAt            DateTime             @default(now())
-  merchant             Merchant             @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  id                String               @id @default(uuid())
+  merchantId        String
+  reportId          String               @unique
+  periodStart       DateTime
+  periodEnd         DateTime
+  totalTransactions Int
+  successCount      Int
+  failedCount       Int
+  pendingCount      Int
+  grossVolume       Decimal              @db.Decimal(18, 2)
+  totalRefunds      Decimal              @db.Decimal(18, 2)
+  totalSettlements  Decimal              @db.Decimal(18, 2)
+  totalFees         Decimal              @db.Decimal(18, 2)
+  netBalance        Decimal              @db.Decimal(18, 2)
+  discrepancyAmount Decimal              @default(0) @db.Decimal(18, 2)
+  status            ReconciliationStatus @default(PENDING)
+  currency          String               @default("SAR")
+  notes             String?
+  createdAt         DateTime             @default(now())
+  merchant          Merchant             @relation(fields: [merchantId], references: [id], onDelete: Cascade)
 
   @@map("reconciliation_reports")
 }
-
-// ─── NEW: SSE Event Log ───────────────────────────────────────
 
 model EventLog {
   id         String    @id @default(uuid())
@@ -374,8 +380,6 @@ model EventLog {
   @@index([merchantId, delivered, createdAt])
   @@map("event_logs")
 }
-
-// ─────────────────────────────────────────────────────────────
 
 model Settlement {
   id            String           @id @default(uuid())
@@ -613,6 +617,7 @@ model Webhook {
   secret          String
   events          String[]
   isActive        Boolean   @default(true)
+  failureCount    Int       @default(0)
   lastTriggeredAt DateTime?
   createdAt       DateTime  @default(now())
   merchant        Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
@@ -621,15 +626,17 @@ model Webhook {
 }
 
 model TeamMember {
-  id         String           @id @default(uuid())
-  merchantId String
-  name       String
-  email      String
-  role       TeamMemberRole   @default(VIEWER)
-  status     TeamMemberStatus @default(INVITED)
-  invitedAt  DateTime         @default(now())
-  joinedAt   DateTime?
-  merchant   Merchant         @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  id          String           @id @default(uuid())
+  merchantId  String
+  name        String
+  email       String
+  role        TeamMemberRole   @default(VIEWER)
+  status      TeamMemberStatus @default(INVITED)
+  inviteToken String?          @unique
+  invitedAt   DateTime         @default(now())
+  joinedAt    DateTime?
+  updatedAt   DateTime         @updatedAt
+  merchant    Merchant         @relation(fields: [merchantId], references: [id], onDelete: Cascade)
 
   @@unique([merchantId, email])
   @@map("team_members")
@@ -648,47 +655,52 @@ model FxRate {
 }
 
 model HostedCheckout {
-  id             String         @id @default(uuid())
-  merchantId     String
-  checkoutId     String         @unique
-  title          String
-  description    String?
-  logoUrl        String?
-  primaryColor   String         @default("#6C5CE7")
-  theme          CheckoutTheme  @default(LIGHT)
-  currency       String         @default("SAR")
-  allowedMethods String[]
-  redirectUrl    String?
-  cancelUrl      String?
-  collectPhone   Boolean        @default(true)
-  collectEmail   Boolean        @default(true)
-  collectNote    Boolean        @default(false)
-  isActive       Boolean        @default(true)
-  status         CheckoutStatus @default(ACTIVE)
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  merchant       Merchant       @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  sessions       CheckoutSession[]
+  id                String           @id @default(uuid())
+  merchantId        String
+  checkoutId        String           @unique
+  name              String
+  description       String?
+  logoUrl           String?
+  brandColor        String           @default("#1A56DB")
+  theme             CheckoutTheme    @default(DARK)
+  currency          String           @default("SAR")
+  allowedCurrencies String[]
+  allowedMethods    String[]
+  requirePhone      Boolean          @default(false)
+  requireAddress    Boolean          @default(false)
+  allowNote         Boolean          @default(false)
+  successUrl        String?
+  cancelUrl         String?
+  webhookUrl        String?
+  isActive          Boolean          @default(true)
+  status            CheckoutStatus   @default(ACTIVE)
+  usageCount        Int              @default(0)
+  totalRevenue      Decimal          @default(0) @db.Decimal(18, 2)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  merchant          Merchant         @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  sessions          CheckoutSession[]
 
   @@map("hosted_checkouts")
 }
 
 model CheckoutSession {
-  id             String         @id @default(uuid())
-  sessionId      String         @unique
-  checkoutId     String
-  amount         Decimal        @db.Decimal(18, 2)
-  currency       String
-  customerName   String?
-  customerEmail  String?
-  customerPhone  String?
-  note           String?
-  status         String         @default("PENDING")
-  paidAt         DateTime?
-  expiresAt      DateTime?
-  metadata       Json?
-  createdAt      DateTime       @default(now())
-  hostedCheckout HostedCheckout @relation(fields: [checkoutId], references: [id], onDelete: Cascade)
+  id              String         @id @default(uuid())
+  sessionId       String         @unique
+  checkoutId      String
+  amount          Decimal        @db.Decimal(18, 2)
+  currency        String
+  customerName    String?
+  customerEmail   String?
+  customerPhone   String?
+  customerAddress String?
+  customerNote    String?
+  status          String         @default("PENDING")
+  paidAt          DateTime?
+  expiresAt       DateTime
+  metadata        Json?
+  createdAt       DateTime       @default(now())
+  checkout        HostedCheckout @relation(fields: [checkoutId], references: [id], onDelete: Cascade)
 
   @@map("checkout_sessions")
 }
