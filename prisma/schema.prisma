@@ -159,6 +159,27 @@ enum CheckoutTheme {
   AUTO
 }
 
+enum PaymentMethodType {
+  CREDIT_CARD
+  DEBIT_CARD
+  APPLE_PAY
+  GOOGLE_PAY
+  BANK_TRANSFER
+  STC_PAY
+  MADA
+  TAMARA
+  TABBY
+  CRYPTO
+  COD
+  WALLET
+}
+
+enum PaymentMethodStatus {
+  ACTIVE
+  INACTIVE
+  PENDING_SETUP
+}
+
 model Admin {
   id           String    @id @default(uuid())
   email        String    @unique
@@ -173,41 +194,64 @@ model Admin {
 }
 
 model Merchant {
-  id                String           @id @default(uuid())
-  name              String
-  email             String           @unique
-  phone             String           @unique
-  passwordHash      String?
-  merchantId        String           @unique
-  language          Language         @default(EN)
-  currency          Currency         @default(SAR)
-  status            MerchantStatus   @default(ACTIVE)
-  kycStatus         KycStatus        @default(PENDING)
-  businessName      String?
-  businessType      String?
-  country           String
-  timezone          String           @default("UTC")
-  onboardingDone    Boolean          @default(false)
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-  transactions      Transaction[]
-  settlements       Settlement[]
-  disputes          Dispute[]
-  refunds           Refund[]
-  invoices          Invoice[]
-  expenses          Expense[]
-  revenueGoals      RevenueGoal[]
-  subscriptions     Subscription[]
-  paymentLinks      PaymentLink[]
-  notifications     Notification[]
-  apiKeys           ApiKey[]
-  webhooks          Webhook[]
-  codOrders         CODOrder[]
-  teamMembers       TeamMember[]
-  hostedCheckouts   HostedCheckout[]
-  sentTransfers     Transfer[]       @relation("SentTransfers")
-  receivedTransfers Transfer[]       @relation("ReceivedTransfers")
+  id                   String                @id @default(uuid())
+  name                 String
+  email                String                @unique
+  phone                String                @unique
+  passwordHash         String?
+  merchantId           String                @unique
+  language             Language              @default(EN)
+  currency             Currency              @default(SAR)
+  status               MerchantStatus        @default(ACTIVE)
+  kycStatus            KycStatus             @default(PENDING)
+  businessName         String?
+  businessType         String?
+  country              String
+  timezone             String                @default("UTC")
+  onboardingDone       Boolean               @default(false)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  transactions         Transaction[]
+  settlements          Settlement[]
+  disputes             Dispute[]
+  refunds              Refund[]
+  invoices             Invoice[]
+  expenses             Expense[]
+  revenueGoals         RevenueGoal[]
+  subscriptions        Subscription[]
+  paymentLinks         PaymentLink[]
+  notifications        Notification[]
+  apiKeys              ApiKey[]
+  webhooks             Webhook[]
+  codOrders            CODOrder[]
+  teamMembers          TeamMember[]
+  hostedCheckouts      HostedCheckout[]
+  paymentMethodConfigs PaymentMethodConfig[]
+  sentTransfers        Transfer[]            @relation("SentTransfers")
+  receivedTransfers    Transfer[]            @relation("ReceivedTransfers")
   @@map("merchants")
+}
+
+model PaymentMethodConfig {
+  id           String              @id @default(uuid())
+  merchantId   String
+  method       PaymentMethodType
+  status       PaymentMethodStatus @default(INACTIVE)
+  displayName  String?
+  displayOrder Int                 @default(0)
+  config       Json?
+  isDefault    Boolean             @default(false)
+  countries    String[]
+  currencies   String[]
+  minAmount    Decimal?            @db.Decimal(18, 2)
+  maxAmount    Decimal?            @db.Decimal(18, 2)
+  feePercent   Decimal?            @db.Decimal(5, 4)
+  feeFixed     Decimal?            @db.Decimal(18, 2)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  merchant     Merchant            @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  @@unique([merchantId, method])
+  @@map("payment_method_configs")
 }
 
 model Transaction {
@@ -452,90 +496,3 @@ model ApiKey {
 model Webhook {
   id              String    @id @default(uuid())
   merchantId      String
-  name            String
-  url             String
-  events          String[]
-  secret          String
-  isActive        Boolean   @default(true)
-  lastTriggeredAt DateTime?
-  failureCount    Int       @default(0)
-  createdAt       DateTime  @default(now())
-  merchant        Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  @@map("webhooks")
-}
-
-model OtpCode {
-  id        String   @id @default(uuid())
-  phone     String
-  code      String
-  expiresAt DateTime
-  verified  Boolean  @default(false)
-  attempts  Int      @default(0)
-  createdAt DateTime @default(now())
-  @@map("otp_codes")
-}
-
-model TeamMember {
-  id          String           @id @default(uuid())
-  merchantId  String
-  name        String
-  email       String
-  role        TeamMemberRole   @default(VIEWER)
-  status      TeamMemberStatus @default(INVITED)
-  inviteToken String?          @unique
-  joinedAt    DateTime?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  merchant    Merchant         @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  @@unique([merchantId, email])
-  @@map("team_members")
-}
-
-model HostedCheckout {
-  id                String           @id @default(uuid())
-  merchantId        String
-  checkoutId        String           @unique
-  name              String
-  description       String?
-  logoUrl           String?
-  brandColor        String           @default("#1A56DB")
-  theme             CheckoutTheme    @default(DARK)
-  currency          String           @default("SAR")
-  allowedCurrencies String[]
-  allowedMethods    String[]
-  requirePhone      Boolean          @default(false)
-  requireAddress    Boolean          @default(false)
-  allowNote         Boolean          @default(false)
-  successUrl        String?
-  cancelUrl         String?
-  webhookUrl        String?
-  isActive          Boolean          @default(true)
-  status            CheckoutStatus   @default(ACTIVE)
-  usageCount        Int              @default(0)
-  totalRevenue      Decimal          @default(0) @db.Decimal(18, 2)
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-  merchant          Merchant         @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  sessions          CheckoutSession[]
-  @@map("hosted_checkouts")
-}
-
-model CheckoutSession {
-  id              String         @id @default(uuid())
-  sessionId       String         @unique
-  checkoutId      String
-  checkout        HostedCheckout @relation(fields: [checkoutId], references: [id], onDelete: Cascade)
-  amount          Decimal        @db.Decimal(18, 2)
-  currency        String
-  customerName    String?
-  customerEmail   String?
-  customerPhone   String?
-  customerAddress String?
-  customerNote    String?
-  status          String         @default("PENDING")
-  paidAt          DateTime?
-  expiresAt       DateTime
-  metadata        Json?
-  createdAt       DateTime       @default(now())
-  @@map("checkout_sessions")
-}
