@@ -1,5 +1,6 @@
 // ─────────────────────────────────────────────────────────────
 // Zyrix Payment Gateway — Prisma Schema
+// Updated: Transaction Engine (RetryLog + ReconciliationReport + EventLog)
 // ─────────────────────────────────────────────────────────────
 
 generator client {
@@ -180,6 +181,35 @@ enum PaymentMethodStatus {
   PENDING_SETUP
 }
 
+// ─── NEW: Transaction Engine Enums ───────────────────────────
+
+enum RetryStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  EXHAUSTED
+}
+
+enum ReconciliationStatus {
+  BALANCED
+  DISCREPANCY
+  PENDING
+}
+
+enum EventType {
+  TRANSACTION_CREATED
+  TRANSACTION_UPDATED
+  TRANSACTION_FAILED
+  TRANSACTION_RETRY
+  SETTLEMENT_UPDATED
+  REFUND_CREATED
+  DISPUTE_OPENED
+  PAYMENT_LINK_PAID
+  BALANCE_CHANGED
+}
+
+// ─────────────────────────────────────────────────────────────
+
 model Admin {
   id           String    @id @default(uuid())
   email        String    @unique
@@ -190,6 +220,7 @@ model Admin {
   lastLoginAt  DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+
   @@map("admins")
 }
 
@@ -227,8 +258,11 @@ model Merchant {
   teamMembers          TeamMember[]
   hostedCheckouts      HostedCheckout[]
   paymentMethodConfigs PaymentMethodConfig[]
+  reconciliations      ReconciliationReport[]
+  eventLogs            EventLog[]
   sentTransfers        Transfer[]            @relation("SentTransfers")
   receivedTransfers    Transfer[]            @relation("ReceivedTransfers")
+
   @@map("merchants")
 }
 
@@ -250,6 +284,7 @@ model PaymentMethodConfig {
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
   merchant     Merchant            @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
   @@unique([merchantId, method])
   @@map("payment_method_configs")
 }
@@ -270,13 +305,77 @@ model Transaction {
   isCredit      Boolean
   description   String?
   metadata      Json?
+  retryCount    Int               @default(0)
+  lastRetryAt   DateTime?
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
   merchant      Merchant          @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   disputes      Dispute[]
   refunds       Refund[]
+  retryLogs     RetryLog[]
+
   @@map("transactions")
 }
+
+// ─── NEW: Smart Retry ─────────────────────────────────────────
+
+model RetryLog {
+  id            String      @id @default(uuid())
+  transactionId String
+  attemptNumber Int
+  status        RetryStatus
+  errorMessage  String?
+  errorCode     String?
+  nextRetryAt   DateTime?
+  executedAt    DateTime    @default(now())
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@map("retry_logs")
+}
+
+// ─── NEW: Reconciliation Report ──────────────────────────────
+
+model ReconciliationReport {
+  id                   String               @id @default(uuid())
+  merchantId           String
+  reportId             String               @unique
+  periodStart          DateTime
+  periodEnd            DateTime
+  totalTransactions    Int
+  successCount         Int
+  failedCount          Int
+  pendingCount         Int
+  grossVolume          Decimal              @db.Decimal(18, 2)
+  totalRefunds         Decimal              @db.Decimal(18, 2)
+  totalSettlements     Decimal              @db.Decimal(18, 2)
+  totalFees            Decimal              @db.Decimal(18, 2)
+  netBalance           Decimal              @db.Decimal(18, 2)
+  discrepancyAmount    Decimal              @default(0) @db.Decimal(18, 2)
+  status               ReconciliationStatus @default(PENDING)
+  currency             String               @default("SAR")
+  notes                String?
+  createdAt            DateTime             @default(now())
+  merchant             Merchant             @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("reconciliation_reports")
+}
+
+// ─── NEW: SSE Event Log ───────────────────────────────────────
+
+model EventLog {
+  id         String    @id @default(uuid())
+  merchantId String
+  eventType  EventType
+  payload    Json
+  delivered  Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  merchant   Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId, delivered, createdAt])
+  @@map("event_logs")
+}
+
+// ─────────────────────────────────────────────────────────────
 
 model Settlement {
   id            String           @id @default(uuid())
@@ -293,6 +392,7 @@ model Settlement {
   completedDate DateTime?
   createdAt     DateTime         @default(now())
   merchant      Merchant         @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
   @@map("settlements")
 }
 
@@ -311,6 +411,7 @@ model Dispute {
   resolvedAt    DateTime?
   merchant      Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   transaction   Transaction   @relation(fields: [transactionId], references: [id])
+
   @@map("disputes")
 }
 
@@ -327,6 +428,7 @@ model Refund {
   createdAt     DateTime     @default(now())
   merchant      Merchant     @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   transaction   Transaction  @relation(fields: [transactionId], references: [id])
+
   @@map("refunds")
 }
 
@@ -343,6 +445,7 @@ model Transfer {
   completedAt    DateTime?
   fromMerchant   Merchant       @relation("SentTransfers", fields: [fromMerchantId], references: [id], onDelete: Cascade)
   toMerchant     Merchant       @relation("ReceivedTransfers", fields: [toMerchantId], references: [id], onDelete: Cascade)
+
   @@map("transfers")
 }
 
@@ -362,6 +465,7 @@ model CODOrder {
   notes           String?
   createdAt       DateTime  @default(now())
   merchant        Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
   @@map("cod_orders")
 }
 
@@ -378,6 +482,7 @@ model Invoice {
   paidDate     DateTime?
   createdAt    DateTime      @default(now())
   merchant     Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
   @@map("invoices")
 }
 
@@ -391,6 +496,7 @@ model Expense {
   date        DateTime
   createdAt   DateTime @default(now())
   merchant    Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
   @@map("expenses")
 }
 
@@ -406,6 +512,7 @@ model RevenueGoal {
   endDate       DateTime
   createdAt     DateTime   @default(now())
   merchant      Merchant   @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
   @@map("revenue_goals")
 }
 
@@ -421,6 +528,7 @@ model Subscription {
   currentPeriodEnd   DateTime
   createdAt          DateTime    @default(now())
   merchant           Merchant    @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
   @@map("subscriptions")
 }
 
@@ -446,6 +554,7 @@ model PaymentLink {
   createdAt   DateTime      @default(now())
   merchant    Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   payments    LinkPayment[]
+
   @@map("payment_links")
 }
 
@@ -464,6 +573,7 @@ model LinkPayment {
   utmCampaign String?
   status      String      @default("COMPLETED")
   createdAt   DateTime    @default(now())
+
   @@map("link_payments")
 }
 
@@ -477,6 +587,7 @@ model Notification {
   data       Json?
   createdAt  DateTime         @default(now())
   merchant   Merchant         @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
   @@map("notifications")
 }
 
@@ -490,9 +601,94 @@ model ApiKey {
   lastUsedAt DateTime?
   createdAt  DateTime  @default(now())
   merchant   Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
   @@map("api_keys")
 }
 
 model Webhook {
   id              String    @id @default(uuid())
   merchantId      String
+  name            String
+  url             String
+  secret          String
+  events          String[]
+  isActive        Boolean   @default(true)
+  lastTriggeredAt DateTime?
+  createdAt       DateTime  @default(now())
+  merchant        Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("webhooks")
+}
+
+model TeamMember {
+  id         String           @id @default(uuid())
+  merchantId String
+  name       String
+  email      String
+  role       TeamMemberRole   @default(VIEWER)
+  status     TeamMemberStatus @default(INVITED)
+  invitedAt  DateTime         @default(now())
+  joinedAt   DateTime?
+  merchant   Merchant         @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@unique([merchantId, email])
+  @@map("team_members")
+}
+
+model FxRate {
+  id         String   @id @default(uuid())
+  fromCcy    String
+  toCcy      String
+  rate       Decimal  @db.Decimal(18, 6)
+  source     String   @default("manual")
+  recordedAt DateTime @default(now())
+
+  @@unique([fromCcy, toCcy, recordedAt])
+  @@map("fx_rates")
+}
+
+model HostedCheckout {
+  id             String         @id @default(uuid())
+  merchantId     String
+  checkoutId     String         @unique
+  title          String
+  description    String?
+  logoUrl        String?
+  primaryColor   String         @default("#6C5CE7")
+  theme          CheckoutTheme  @default(LIGHT)
+  currency       String         @default("SAR")
+  allowedMethods String[]
+  redirectUrl    String?
+  cancelUrl      String?
+  collectPhone   Boolean        @default(true)
+  collectEmail   Boolean        @default(true)
+  collectNote    Boolean        @default(false)
+  isActive       Boolean        @default(true)
+  status         CheckoutStatus @default(ACTIVE)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  merchant       Merchant       @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  sessions       CheckoutSession[]
+
+  @@map("hosted_checkouts")
+}
+
+model CheckoutSession {
+  id             String         @id @default(uuid())
+  sessionId      String         @unique
+  checkoutId     String
+  amount         Decimal        @db.Decimal(18, 2)
+  currency       String
+  customerName   String?
+  customerEmail  String?
+  customerPhone  String?
+  note           String?
+  status         String         @default("PENDING")
+  paidAt         DateTime?
+  expiresAt      DateTime?
+  metadata       Json?
+  createdAt      DateTime       @default(now())
+  hostedCheckout HostedCheckout @relation(fields: [checkoutId], references: [id], onDelete: Cascade)
+
+  @@map("checkout_sessions")
+}
