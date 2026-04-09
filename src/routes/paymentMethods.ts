@@ -1,5 +1,8 @@
+// ─────────────────────────────────────────────────────────────
+// Zyrix Backend — Payment Methods Routes
+// ─────────────────────────────────────────────────────────────
 import { Router } from "express";
-import { authenticate } from "../middleware/auth";
+import { authenticateToken } from "../middleware/auth";
 import {
   listMethods,
   updateMethod,
@@ -10,9 +13,9 @@ import {
 const router = Router();
 
 // Merchant routes
-router.get("/",            authenticate, listMethods);
-router.put("/:method",     authenticate, updateMethod);
-router.patch("/:method/toggle", authenticate, toggleMethod);
+router.get("/",                   authenticateToken, listMethods);
+router.put("/:method",            authenticateToken, updateMethod);
+router.patch("/:method/toggle",   authenticateToken, toggleMethod);
 
 // Public route — for Hosted Checkout page
 router.get("/public/:merchantId", getMethodsPublic);
