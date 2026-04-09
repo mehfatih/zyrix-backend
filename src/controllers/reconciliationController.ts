@@ -1,123 +1,131 @@
-// src/controllers/reconciliationController.ts
-import { Request, Response } from "express";
-import { prisma } from "../lib/prisma";
-import { generateId } from "../lib/generateId";
+// ─────────────────────────────────────────────────────────────
+// Zyrix Backend — Reconciliation Controller
+// ─────────────────────────────────────────────────────────────
+import { Response, NextFunction } from "express";
+import { AuthenticatedRequest } from "../types";
+import { prisma } from "../config/database";
 
-export const generateReconciliation = async (req: Request, res: Response) => {
-  const merchantId = (req as any).merchant?.id;
-  const { periodStart, periodEnd, currency = "SAR" } = req.body;
+function generateReportId(): string {
+  return "REC-" + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 6).toUpperCase();
+}
 
-  if (!periodStart || !periodEnd) {
-    return res.status(400).json({ error: "periodStart and periodEnd are required" });
-  }
+export const reconciliationController = {
+  async generateReconciliation(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      const merchantId = req.merchant.id;
+      const { periodStart, periodEnd, currency = "SAR" } = req.body;
 
-  const start = new Date(periodStart);
-  const end = new Date(periodEnd);
+      if (!periodStart || !periodEnd) {
+        res.status(400).json({ success: false, error: { message: "periodStart and periodEnd are required" } });
+        return;
+      }
 
-  if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-    return res.status(400).json({ error: "Invalid date format" });
-  }
+      const start = new Date(periodStart);
+      const end = new Date(periodEnd);
 
-  // Aggregate transactions
-  const [transactions, refunds, settlements] = await prisma.$transaction([
-    prisma.transaction.findMany({
-      where: {
-        merchantId,
-        currency,
-        createdAt: { gte: start, lte: end },
-      },
-      select: { status: true, amount: true },
-    }),
-    prisma.refund.findMany({
-      where: {
-        merchantId,
-        currency,
-        createdAt: { gte: start, lte: end },
-        status: "COMPLETED",
-      },
-      select: { amount: true },
-    }),
-    prisma.settlement.findMany({
-      where: {
-        merchantId,
-        currency,
-        createdAt: { gte: start, lte: end },
-        status: "COMPLETED",
-      },
-      select: { netAmount: true, commission: true },
-    }),
-  ]);
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        res.status(400).json({ success: false, error: { message: "Invalid date format" } });
+        return;
+      }
 
-  const successTxs = transactions.filter((t) => t.status === "SUCCESS");
-  const failedTxs = transactions.filter((t) => t.status === "FAILED");
-  const pendingTxs = transactions.filter((t) => t.status === "PENDING");
+      const [transactions, refunds, settlements] = await prisma.$transaction([
+        prisma.transaction.findMany({
+          where: { merchantId, currency, createdAt: { gte: start, lte: end } },
+          select: { status: true, amount: true },
+        }),
+        prisma.refund.findMany({
+          where: { merchantId, currency, createdAt: { gte: start, lte: end }, status: "COMPLETED" },
+          select: { amount: true },
+        }),
+        prisma.settlement.findMany({
+          where: { merchantId, currency, createdAt: { gte: start, lte: end }, status: "COMPLETED" },
+          select: { netAmount: true, commission: true },
+        }),
+      ]);
 
-  const grossVolume = successTxs.reduce((sum, t) => sum + Number(t.amount), 0);
-  const totalRefunds = refunds.reduce((sum, r) => sum + Number(r.amount), 0);
-  const totalSettlements = settlements.reduce((sum, s) => sum + Number(s.netAmount), 0);
-  const totalFees = settlements.reduce((sum, s) => sum + Number(s.commission), 0);
-  const netBalance = grossVolume - totalRefunds - totalFees;
+      const successTxs = transactions.filter((t) => t.status === "SUCCESS");
+      const failedTxs = transactions.filter((t) => t.status === "FAILED");
+      const pendingTxs = transactions.filter((t) => t.status === "PENDING");
 
-  // Discrepancy = net balance - total settled
-  const discrepancyAmount = Math.abs(netBalance - totalSettlements);
-  const status = discrepancyAmount < 0.01 ? "BALANCED" : "DISCREPANCY";
+      const grossVolume = successTxs.reduce((sum, t) => sum + Number(t.amount), 0);
+      const totalRefunds = refunds.reduce((sum, r) => sum + Number(r.amount), 0);
+      const totalSettlements = settlements.reduce((sum, s) => sum + Number(s.netAmount), 0);
+      const totalFees = settlements.reduce((sum, s) => sum + Number(s.commission), 0);
+      const netBalance = grossVolume - totalRefunds - totalFees;
+      const discrepancyAmount = Math.abs(netBalance - totalSettlements);
+      const status = discrepancyAmount < 0.01 ? "BALANCED" : "DISCREPANCY";
 
-  const report = await prisma.reconciliationReport.create({
-    data: {
-      merchantId,
-      reportId: `REC-${generateId()}`,
-      periodStart: start,
-      periodEnd: end,
-      totalTransactions: transactions.length,
-      successCount: successTxs.length,
-      failedCount: failedTxs.length,
-      pendingCount: pendingTxs.length,
-      grossVolume,
-      totalRefunds,
-      totalSettlements,
-      totalFees,
-      netBalance,
-      discrepancyAmount,
-      status: status as any,
-      currency,
-    },
-  });
+      const report = await prisma.reconciliationReport.create({
+        data: {
+          merchantId,
+          reportId: generateReportId(),
+          periodStart: start,
+          periodEnd: end,
+          totalTransactions: transactions.length,
+          successCount: successTxs.length,
+          failedCount: failedTxs.length,
+          pendingCount: pendingTxs.length,
+          grossVolume,
+          totalRefunds,
+          totalSettlements,
+          totalFees,
+          netBalance,
+          discrepancyAmount,
+          status: status as any,
+          currency,
+        },
+      });
 
-  return res.status(201).json({ report });
-};
+      res.status(201).json({ success: true, data: { report } });
+    } catch (err) {
+      next(err);
+    }
+  },
 
-export const listReconciliations = async (req: Request, res: Response) => {
-  const merchantId = (req as any).merchant?.id;
-  const { page = "1", limit = "10", status } = req.query;
+  async listReconciliations(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      const merchantId = req.merchant.id;
+      const page = parseInt((req.query.page as string) || "1");
+      const limit = parseInt((req.query.limit as string) || "10");
+      const skip = (page - 1) * limit;
+      const status = req.query.status as string | undefined;
 
-  const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
-  const take = parseInt(limit as string);
+      const where: any = { merchantId };
+      if (status) where.status = status;
 
-  const where: any = { merchantId };
-  if (status) where.status = status;
+      const [reports, total] = await prisma.$transaction([
+        prisma.reconciliationReport.findMany({
+          where,
+          orderBy: { createdAt: "desc" },
+          skip,
+          take: limit,
+        }),
+        prisma.reconciliationReport.count({ where }),
+      ]);
 
-  const [reports, total] = await prisma.$transaction([
-    prisma.reconciliationReport.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      skip,
-      take,
-    }),
-    prisma.reconciliationReport.count({ where }),
-  ]);
+      res.json({ success: true, data: { reports, total, page, limit } });
+    } catch (err) {
+      next(err);
+    }
+  },
 
-  return res.json({ reports, total, page: parseInt(page as string), limit: take });
-};
+  async getReconciliation(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      const merchantId = req.merchant.id;
+      const { reportId } = req.params;
 
-export const getReconciliation = async (req: Request, res: Response) => {
-  const merchantId = (req as any).merchant?.id;
-  const { reportId } = req.params;
+      const report = await prisma.reconciliationReport.findFirst({
+        where: { reportId, merchantId },
+      });
 
-  const report = await prisma.reconciliationReport.findFirst({
-    where: { reportId, merchantId },
-  });
+      if (!report) {
+        res.status(404).json({ success: false, error: { message: "Report not found" } });
+        return;
+      }
 
-  if (!report) return res.status(404).json({ error: "Report not found" });
-
-  return res.json({ report });
+      res.json({ success: true, data: { report } });
+    } catch (err) {
+      next(err);
+    }
+  },
 };
