@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────────────────────
 // Zyrix Backend — Realtime SSE Controller
 // ─────────────────────────────────────────────────────────────
-import { Request, Response, NextFunction } from "express";
+import { Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "../types";
 import { prisma } from "../config/database";
 import { EventType } from "@prisma/client";
@@ -55,7 +55,6 @@ export const realtimeController = {
     }
     clients.get(merchantId)!.add(res);
 
-    // Send any missed undelivered events
     const missed = await prisma.eventLog.findMany({
       where: { merchantId, delivered: false },
       orderBy: { createdAt: "asc" },
@@ -78,7 +77,6 @@ export const realtimeController = {
       });
     }
 
-    // Heartbeat every 25s to keep alive through Railway's 30s timeout
     const heartbeat = setInterval(() => {
       try {
         res.write(`: heartbeat\n\n`);
