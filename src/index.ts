@@ -33,6 +33,9 @@ import adminRoutes from "./routes/admin";
 import teamRoutes from "./routes/team";
 import hostedCheckoutRoutes from "./routes/hostedCheckout";
 import paymentMethodsRoutes from "./routes/paymentMethods";
+import retryRoutes from "./routes/retry";
+import reconciliationRoutes from "./routes/reconciliation";
+import realtimeRoutes from "./routes/realtime";
 
 const app = express();
 
@@ -88,6 +91,9 @@ app.use("/api/admin",             adminRoutes);
 app.use("/api/team",              teamRoutes);
 app.use("/api/hosted-checkout",   hostedCheckoutRoutes);
 app.use("/api/payment-methods",   paymentMethodsRoutes);
+app.use("/api/retry",             retryRoutes);
+app.use("/api/reconciliation",    reconciliationRoutes);
+app.use("/api/realtime",          realtimeRoutes);
 
 // ─── 404 & Error Handlers ─────────────────────────────────────
 
