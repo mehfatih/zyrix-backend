@@ -1,12 +1,25 @@
-import { Router } from "express";
-import { authenticate } from "../middleware/authenticate";
-import { streamEvents, getEventHistory } from "../controllers/realtimeController";
+// ─────────────────────────────────────────────────────────────
+// Zyrix Backend — Realtime Routes
+// ─────────────────────────────────────────────────────────────
+import { Router, Request, Response, NextFunction } from "express";
+import { authenticateToken } from "../middleware/auth";
+import { realtimeController } from "../controllers/realtimeController";
+import { AuthenticatedRequest } from "../types";
 
 const router = Router();
 
-router.use(authenticate);
+router.use(authenticateToken);
 
-router.get("/events", streamEvents);
-router.get("/history", getEventHistory);
+router.get(
+  "/events",
+  (req: Request, res: Response, next: NextFunction) =>
+    realtimeController.streamEvents(req as AuthenticatedRequest, res, next)
+);
+
+router.get(
+  "/history",
+  (req: Request, res: Response, next: NextFunction) =>
+    realtimeController.getEventHistory(req as AuthenticatedRequest, res, next)
+);
 
 export default router;
