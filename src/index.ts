@@ -30,6 +30,7 @@ import webhooksRoutes from "./routes/webhooks";
 import codRoutes from "./routes/cod";
 import fxRoutes from "./routes/fx";
 import adminRoutes from "./routes/admin";
+import teamRoutes from "./routes/team";
 
 const app = express();
 
@@ -82,6 +83,7 @@ app.use("/api/webhooks", webhooksRoutes);
 app.use("/api/cod", codRoutes);
 app.use("/api/fx", fxRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/team", teamRoutes);
 
 // ─── 404 & Error Handlers ─────────────────────────────────────
 
