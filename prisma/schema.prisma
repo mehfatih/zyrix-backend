@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// Zyrix Payment Gateway — Prisma Schema (with TeamMember)
+// Zyrix Payment Gateway — Prisma Schema
 // ─────────────────────────────────────────────────────────────
 
 generator client {
@@ -147,6 +147,18 @@ enum TeamMemberStatus {
   SUSPENDED
 }
 
+enum CheckoutStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum CheckoutTheme {
+  DARK
+  LIGHT
+  AUTO
+}
+
 model Admin {
   id           String    @id @default(uuid())
   email        String    @unique
@@ -161,23 +173,23 @@ model Admin {
 }
 
 model Merchant {
-  id                String         @id @default(uuid())
+  id                String           @id @default(uuid())
   name              String
-  email             String         @unique
-  phone             String         @unique
+  email             String           @unique
+  phone             String           @unique
   passwordHash      String?
-  merchantId        String         @unique
-  language          Language       @default(EN)
-  currency          Currency       @default(SAR)
-  status            MerchantStatus @default(ACTIVE)
-  kycStatus         KycStatus      @default(PENDING)
+  merchantId        String           @unique
+  language          Language         @default(EN)
+  currency          Currency         @default(SAR)
+  status            MerchantStatus   @default(ACTIVE)
+  kycStatus         KycStatus        @default(PENDING)
   businessName      String?
   businessType      String?
   country           String
-  timezone          String         @default("UTC")
-  onboardingDone    Boolean        @default(false)
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  timezone          String           @default("UTC")
+  onboardingDone    Boolean          @default(false)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
   transactions      Transaction[]
   settlements       Settlement[]
   disputes          Dispute[]
@@ -192,8 +204,9 @@ model Merchant {
   webhooks          Webhook[]
   codOrders         CODOrder[]
   teamMembers       TeamMember[]
-  sentTransfers     Transfer[]     @relation("SentTransfers")
-  receivedTransfers Transfer[]     @relation("ReceivedTransfers")
+  hostedCheckouts   HostedCheckout[]
+  sentTransfers     Transfer[]       @relation("SentTransfers")
+  receivedTransfers Transfer[]       @relation("ReceivedTransfers")
   @@map("merchants")
 }
 
@@ -290,21 +303,21 @@ model Transfer {
 }
 
 model CODOrder {
-  id               String    @id @default(uuid())
-  merchantId       String
-  orderId          String    @unique
-  customerName     String
-  amount           Decimal   @db.Decimal(18, 2)
-  currency         String    @default("SAR")
-  address          String
-  phone            String?
-  description      String?
-  status           CODStatus @default(PENDING)
-  collectedAmount  Decimal   @default(0) @db.Decimal(18, 2)
-  collectedAt      DateTime?
-  notes            String?
-  createdAt        DateTime  @default(now())
-  merchant         Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  id              String    @id @default(uuid())
+  merchantId      String
+  orderId         String    @unique
+  customerName    String
+  amount          Decimal   @db.Decimal(18, 2)
+  currency        String    @default("SAR")
+  address         String
+  phone           String?
+  description     String?
+  status          CODStatus @default(PENDING)
+  collectedAmount Decimal   @default(0) @db.Decimal(18, 2)
+  collectedAt     DateTime?
+  notes           String?
+  createdAt       DateTime  @default(now())
+  merchant        Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   @@map("cod_orders")
 }
 
@@ -476,4 +489,53 @@ model TeamMember {
   merchant    Merchant         @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   @@unique([merchantId, email])
   @@map("team_members")
+}
+
+model HostedCheckout {
+  id                String           @id @default(uuid())
+  merchantId        String
+  checkoutId        String           @unique
+  name              String
+  description       String?
+  logoUrl           String?
+  brandColor        String           @default("#1A56DB")
+  theme             CheckoutTheme    @default(DARK)
+  currency          String           @default("SAR")
+  allowedCurrencies String[]
+  allowedMethods    String[]
+  requirePhone      Boolean          @default(false)
+  requireAddress    Boolean          @default(false)
+  allowNote         Boolean          @default(false)
+  successUrl        String?
+  cancelUrl         String?
+  webhookUrl        String?
+  isActive          Boolean          @default(true)
+  status            CheckoutStatus   @default(ACTIVE)
+  usageCount        Int              @default(0)
+  totalRevenue      Decimal          @default(0) @db.Decimal(18, 2)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  merchant          Merchant         @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  sessions          CheckoutSession[]
+  @@map("hosted_checkouts")
+}
+
+model CheckoutSession {
+  id              String         @id @default(uuid())
+  sessionId       String         @unique
+  checkoutId      String
+  checkout        HostedCheckout @relation(fields: [checkoutId], references: [id], onDelete: Cascade)
+  amount          Decimal        @db.Decimal(18, 2)
+  currency        String
+  customerName    String?
+  customerEmail   String?
+  customerPhone   String?
+  customerAddress String?
+  customerNote    String?
+  status          String         @default("PENDING")
+  paidAt          DateTime?
+  expiresAt       DateTime
+  metadata        Json?
+  createdAt       DateTime       @default(now())
+  @@map("checkout_sessions")
 }
