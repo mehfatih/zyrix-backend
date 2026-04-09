@@ -32,6 +32,7 @@ import fxRoutes from "./routes/fx";
 import adminRoutes from "./routes/admin";
 import teamRoutes from "./routes/team";
 import hostedCheckoutRoutes from "./routes/hostedCheckout";
+import paymentMethodsRoutes from "./routes/paymentMethods";
 
 const app = express();
 
@@ -63,29 +64,30 @@ app.get("/health", (_req, res) => {
 
 // ─── API Routes ───────────────────────────────────────────────
 
-app.use("/api/auth",             authRoutes);
-app.use("/api/merchant",         merchantRoutes);
-app.use("/api/dashboard",        dashboardRoutes);
-app.use("/api/transactions",     transactionsRoutes);
-app.use("/api/balance",          balanceRoutes);
-app.use("/api/analytics",        analyticsRoutes);
-app.use("/api/settlements",      settlementsRoutes);
-app.use("/api/disputes",         disputesRoutes);
-app.use("/api/refunds",          refundsRoutes);
-app.use("/api/notifications",    notificationsRoutes);
-app.use("/api/invoices",         invoicesRoutes);
-app.use("/api/expenses",         expensesRoutes);
-app.use("/api/revenue-goals",    revenueGoalsRoutes);
-app.use("/api/subscriptions",    subscriptionsRoutes);
-app.use("/api/payment-links",    paymentLinksRoutes);
-app.use("/api/transfers",        transfersRoutes);
-app.use("/api/api-keys",         apiKeysRoutes);
-app.use("/api/webhooks",         webhooksRoutes);
-app.use("/api/cod",              codRoutes);
-app.use("/api/fx",               fxRoutes);
-app.use("/api/admin",            adminRoutes);
-app.use("/api/team",             teamRoutes);
-app.use("/api/hosted-checkout",  hostedCheckoutRoutes);
+app.use("/api/auth",              authRoutes);
+app.use("/api/merchant",          merchantRoutes);
+app.use("/api/dashboard",         dashboardRoutes);
+app.use("/api/transactions",      transactionsRoutes);
+app.use("/api/balance",           balanceRoutes);
+app.use("/api/analytics",         analyticsRoutes);
+app.use("/api/settlements",       settlementsRoutes);
+app.use("/api/disputes",          disputesRoutes);
+app.use("/api/refunds",           refundsRoutes);
+app.use("/api/notifications",     notificationsRoutes);
+app.use("/api/invoices",          invoicesRoutes);
+app.use("/api/expenses",          expensesRoutes);
+app.use("/api/revenue-goals",     revenueGoalsRoutes);
+app.use("/api/subscriptions",     subscriptionsRoutes);
+app.use("/api/payment-links",     paymentLinksRoutes);
+app.use("/api/transfers",         transfersRoutes);
+app.use("/api/api-keys",          apiKeysRoutes);
+app.use("/api/webhooks",          webhooksRoutes);
+app.use("/api/cod",               codRoutes);
+app.use("/api/fx",                fxRoutes);
+app.use("/api/admin",             adminRoutes);
+app.use("/api/team",              teamRoutes);
+app.use("/api/hosted-checkout",   hostedCheckoutRoutes);
+app.use("/api/payment-methods",   paymentMethodsRoutes);
 
 // ─── 404 & Error Handlers ─────────────────────────────────────
 
