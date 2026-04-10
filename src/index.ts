@@ -12,7 +12,7 @@ import dashboardRoutes from "./routes/dashboard";
 import transactionsRoutes from "./routes/transactions";
 import balanceRoutes from "./routes/balance";
 import analyticsRoutes from "./routes/analytics";
-import analyticsIntelligenceRoutes from "./routes/analyticsIntelligence";
+import analyticsIntelligenceRoutes from "./routes/analytics-intelligence";
 import settlementsRoutes from "./routes/settlements";
 import disputesRoutes from "./routes/disputes";
 import refundsRoutes from "./routes/refunds";
