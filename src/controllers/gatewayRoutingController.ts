@@ -296,10 +296,9 @@ export const getAnalytics = async (req: AuthenticatedRequest, res: Response): Pr
 };
 
 // ─── POST /api/gateway-routing/route ─────────────────────────
-// Core routing engine — returns best gateway for given transaction params
 export const routeTransaction = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const merchantId = req.merchant.id;
-  const { country, currency, amount, method } = req.body;
+  const { country, currency, _amount, method } = req.body;
   if (!country || !currency) {
     res.status(400).json({ success: false, error: 'country and currency are required' });
     return;
@@ -315,7 +314,6 @@ export const routeTransaction = async (req: AuthenticatedRequest, res: Response)
     ]);
     const mode = config?.mode || 'SUCCESS_RATE';
 
-    // Filter by routing rules
     let eligible = gateways.filter((gw) => {
       const countryRules = gw.routingRules.filter(r => r.type === 'COUNTRY');
       const currencyRules = gw.routingRules.filter(r => r.type === 'CURRENCY');
@@ -326,14 +324,12 @@ export const routeTransaction = async (req: AuthenticatedRequest, res: Response)
       return true;
     });
 
-    // Fallback to all active gateways if none match rules
     if (!eligible.length && config?.fallbackEnabled) eligible = gateways;
     if (!eligible.length) {
       res.status(404).json({ success: false, error: 'No eligible gateway found' });
       return;
     }
 
-    // Sort by mode
     if (mode === 'SUCCESS_RATE') {
       eligible.sort((a, b) => Number(b.successRate) - Number(a.successRate));
     } else if (mode === 'COST_OPTIMIZED') {
@@ -379,7 +375,6 @@ export const recordEvent = async (req: AuthenticatedRequest, res: Response): Pro
       data: { merchantId, gatewayId, transactionId: transactionId || null, eventType, responseMs: responseMs || null, errorCode: errorCode || null, errorMessage: errorMessage || null, country: country || null, currency: currency || null, amount: amount || null },
     });
 
-    // Update gateway stats
     const recentEvents = await prisma.gatewayEvent.findMany({
       where: { gatewayId, createdAt: { gte: new Date(Date.now() - 7 * 86400000) } },
       select: { eventType: true, responseMs: true },
