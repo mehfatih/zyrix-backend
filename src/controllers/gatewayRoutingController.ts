@@ -113,7 +113,7 @@ export const getAnalytics = async (req: AuthenticatedRequest, res: Response): Pr
 };
 
 export const routeTransaction = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  const merchantId = req.merchant.id; const { country, currency, method } = req.body;
+  const merchantId = req.merchant.id; const { country, currency, method: _method } = req.body;
   if (!country || !currency) { res.status(400).json({ success: false, error: 'country and currency are required' }); return; }
   try {
     const [config, gateways] = await Promise.all([
@@ -122,10 +122,9 @@ export const routeTransaction = async (req: AuthenticatedRequest, res: Response)
     ]);
     const mode = config?.mode || 'SUCCESS_RATE';
     let eligible = gateways.filter((gw) => {
-      const countryRules = gw.routingRules.filter(r => r.type === 'COUNTRY'); const currencyRules = gw.routingRules.filter(r => r.type === 'CURRENCY'); const methodRules = gw.routingRules.filter(r => r.type === 'PAYMENT_METHOD');
+      const countryRules = gw.routingRules.filter(r => r.type === 'COUNTRY'); const currencyRules = gw.routingRules.filter(r => r.type === 'CURRENCY');
       if (countryRules.length && !countryRules.some(r => r.value === country)) return false;
       if (currencyRules.length && !currencyRules.some(r => r.value === currency)) return false;
-      if (method && methodRules.length && !methodRules.some(r => r.value === method)) return false;
       return true;
     });
     if (!eligible.length && config?.fallbackEnabled) eligible = gateways;
@@ -152,22 +151,12 @@ export const recordEvent = async (req: AuthenticatedRequest, res: Response): Pro
   } catch (err) { res.status(500).json({ success: false, error: 'Failed to record event' }); return; }
 };
 
-// ─────────────────────────────────────────────────────────────
-// ELITE #11: AI Routing + Cost/Success Balanced
-// ─────────────────────────────────────────────────────────────
-
 export const aiRouteTransaction = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const merchantId = req.merchant.id;
-  const { country, currency, amount, method, successWeight = 0.5, costWeight = 0.3, speedWeight = 0.2 } = req.body;
+  const { country, currency, amount, successWeight = 0.5, costWeight = 0.3, speedWeight = 0.2 } = req.body;
   if (!country || !currency) { res.status(400).json({ success: false, error: 'country and currency are required' }); return; }
   try {
-    const gateways = await prisma.paymentGateway.findMany({
-      where: { merchantId, status: 'ACTIVE' },
-      include: {
-        routingRules: { where: { isActive: true } },
-        events: { where: { createdAt: { gte: new Date(Date.now() - 7 * 86400000) }, country }, select: { eventType: true, responseMs: true } },
-      },
-    });
+    const gateways = await prisma.paymentGateway.findMany({ where: { merchantId, status: 'ACTIVE' }, include: { routingRules: { where: { isActive: true } }, events: { where: { createdAt: { gte: new Date(Date.now() - 7 * 86400000) }, country }, select: { eventType: true, responseMs: true } } } });
     const eligible = gateways.filter((gw) => {
       const cr = gw.routingRules.filter(r => r.type === 'COUNTRY'); const curr = gw.routingRules.filter(r => r.type === 'CURRENCY');
       if (cr.length && !cr.some(r => r.value === country)) return false;
@@ -175,7 +164,6 @@ export const aiRouteTransaction = async (req: AuthenticatedRequest, res: Respons
       return true;
     });
     if (!eligible.length) { res.status(404).json({ success: false, error: 'No eligible gateway found' }); return; }
-
     const scored = eligible.map((gw) => {
       const ce = gw.events; const ct = ce.length; const cs = ce.filter(e => e.eventType === 'SUCCESS').length;
       const csr = ct > 0 ? (cs / ct) * 100 : Number(gw.successRate);
@@ -189,7 +177,7 @@ export const aiRouteTransaction = async (req: AuthenticatedRequest, res: Respons
     });
     scored.sort((a, b) => b.aiScore - a.aiScore);
     const selected = scored[0]; const fallbacks = scored.slice(1, 3);
-    res.json({ success: true, data: { gateway: selected, fallbacks, weights: { success: successWeight, cost: costWeight, speed: speedWeight }, allScores: scored, explanation: `${selected.name} فاز بـ AI score ${selected.aiScore} — نجاح ${selected.countrySuccessRate}% | cost ${selected.costScore} | speed ${selected.speedScore}` } }); return;
+    res.json({ success: true, data: { gateway: selected, fallbacks, weights: { success: successWeight, cost: costWeight, speed: speedWeight }, allScores: scored, explanation: `${selected.name} فاز بـ AI score ${selected.aiScore}` } }); return;
   } catch (err) { res.status(500).json({ success: false, error: 'AI routing failed' }); return; }
 };
 
