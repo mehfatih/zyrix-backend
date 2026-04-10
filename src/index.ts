@@ -1,7 +1,4 @@
-// ─────────────────────────────────────────────────────────────
-// Zyrix Backend — Express Server Entry Point
-// ─────────────────────────────────────────────────────────────
-
+// src/index.ts
 import express from "express";
 import helmet from "helmet";
 import { env } from "./config/env";
@@ -38,36 +35,22 @@ import reconciliationRoutes from "./routes/reconciliation";
 import realtimeRoutes from "./routes/realtime";
 import customersRoutes from "./routes/customers";
 import featureFlagsRoutes from "./routes/featureFlags";
+import walletsRoutes from "./routes/wallets";
 
 const app = express();
-
-// ─── Security Middleware ──────────────────────────────────────
 
 app.use(helmet());
 app.use(corsOptions);
 app.use(globalRateLimiter);
-
-// ─── Body Parsing ─────────────────────────────────────────────
-
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
-
-// ─── Health Check ─────────────────────────────────────────────
 
 app.get("/health", (_req, res) => {
   res.status(200).json({
     success: true,
-    data: {
-      status: "ok",
-      service: "zyrix-backend",
-      version: "1.0.0",
-      environment: env.nodeEnv,
-      timestamp: new Date().toISOString(),
-    },
+    data: { status: "ok", service: "zyrix-backend", version: "1.0.0", environment: env.nodeEnv, timestamp: new Date().toISOString() },
   });
 });
-
-// ─── API Routes ───────────────────────────────────────────────
 
 app.use("/api/auth",              authRoutes);
 app.use("/api/merchant",          merchantRoutes);
@@ -98,19 +81,15 @@ app.use("/api/reconciliation",    reconciliationRoutes);
 app.use("/api/realtime",          realtimeRoutes);
 app.use("/api/customers",         customersRoutes);
 app.use("/api/feature-flags",     featureFlagsRoutes);
-
-// ─── 404 & Error Handlers ─────────────────────────────────────
+app.use("/api/wallets",           walletsRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
-
-// ─── Start Server ─────────────────────────────────────────────
 
 async function bootstrap(): Promise<void> {
   app.listen(env.port, () => {
     console.log("\n🚀 Zyrix Backend running on port " + env.port);
   });
-
   try {
     await prisma.$connect();
     console.log("✅ Database connected");
@@ -119,15 +98,7 @@ async function bootstrap(): Promise<void> {
   }
 }
 
-process.on("SIGINT", async () => {
-  console.log("\n⚠️  Shutting down gracefully...");
-  await prisma.$disconnect();
-  process.exit(0);
-});
-
-process.on("SIGTERM", async () => {
-  await prisma.$disconnect();
-  process.exit(0);
-});
+process.on("SIGINT", async () => { console.log("\n⚠️  Shutting down gracefully..."); await prisma.$disconnect(); process.exit(0); });
+process.on("SIGTERM", async () => { await prisma.$disconnect(); process.exit(0); });
 
 bootstrap();
