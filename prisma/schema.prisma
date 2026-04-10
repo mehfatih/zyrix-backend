@@ -259,6 +259,7 @@ model Merchant {
   eventLogs            EventLog[]
   otpCodes             OtpCode[]
   customers            Customer[]
+  featureFlags         FeatureFlag[]
   sentTransfers        Transfer[]             @relation("SentTransfers")
   receivedTransfers    Transfer[]             @relation("ReceivedTransfers")
 
@@ -732,4 +733,22 @@ model Customer {
   @@index([merchantId, totalSpent])
   @@index([merchantId, lastSeenAt])
   @@map("customers")
+}
+
+model FeatureFlag {
+  id                    String   @id @default(uuid())
+  merchantId            String
+  key                   String
+  label                 String
+  description           String   @default("")
+  category              String   @default("core")
+  enabled               Boolean  @default(false)
+  requiresExternalSetup Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  merchant              Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@unique([merchantId, key])
+  @@index([merchantId])
+  @@map("feature_flags")
 }
