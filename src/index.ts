@@ -36,6 +36,7 @@ import realtimeRoutes from "./routes/realtime";
 import customersRoutes from "./routes/customers";
 import featureFlagsRoutes from "./routes/featureFlags";
 import walletsRoutes from "./routes/wallets";
+import gatewayRoutingRoutes from "./routes/gatewayRouting";
 
 const app = express();
 
@@ -82,6 +83,7 @@ app.use("/api/realtime",          realtimeRoutes);
 app.use("/api/customers",         customersRoutes);
 app.use("/api/feature-flags",     featureFlagsRoutes);
 app.use("/api/wallets",           walletsRoutes);
+app.use("/api/gateway-routing",   gatewayRoutingRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
