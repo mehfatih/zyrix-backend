@@ -4,8 +4,10 @@
 
 # Stage 1: Build
 FROM node:20-alpine AS builder
-
 WORKDIR /app
+
+# Install OpenSSL (required by Prisma)
+RUN apk add --no-cache openssl
 
 # Copy package files
 COPY package.json package-lock.json* ./
@@ -24,10 +26,13 @@ RUN npx prisma generate
 # Build TypeScript
 RUN npm run build
 
+# ─────────────────────────────────────────────────────────────
 # Stage 2: Production
 FROM node:20-alpine AS runner
-
 WORKDIR /app
+
+# Install OpenSSL (required by Prisma at runtime)
+RUN apk add --no-cache openssl
 
 # Copy package files
 COPY package.json package-lock.json* ./
@@ -45,5 +50,5 @@ COPY --from=builder /app/dist ./dist
 # Expose port (Railway sets PORT automatically)
 EXPOSE ${PORT:-3000}
 
-# Run migrations then start
+# Start server
 CMD ["node", "dist/index.js"]
