@@ -210,6 +210,33 @@ enum WalletTransactionType {
   DEBIT
 }
 
+enum GatewayStatus {
+  ACTIVE
+  INACTIVE
+  DEGRADED
+}
+
+enum GatewayRoutingMode {
+  COST_OPTIMIZED
+  SUCCESS_RATE
+  LOAD_BALANCED
+  COUNTRY_BASED
+}
+
+enum RoutingRuleType {
+  COUNTRY
+  CURRENCY
+  AMOUNT_RANGE
+  PAYMENT_METHOD
+}
+
+enum GatewayEventType {
+  SUCCESS
+  FAILURE
+  TIMEOUT
+  PARTIAL
+}
+
 // ─────────────────────────────────────────────────────────────
 
 model Admin {
@@ -268,6 +295,10 @@ model Merchant {
   wallets              Wallet[]
   sentTransfers        Transfer[]             @relation("SentTransfers")
   receivedTransfers    Transfer[]             @relation("ReceivedTransfers")
+  gateways             PaymentGateway[]
+  gatewayRoutingRules  GatewayRoutingRule[]
+  gatewayRoutingConfig GatewayRoutingConfig?
+  gatewayEvents        GatewayEvent[]
 
   @@map("merchants")
 }
@@ -790,4 +821,85 @@ model FeatureFlag {
   @@unique([merchantId, key])
   @@index([merchantId])
   @@map("feature_flags")
+}
+
+model PaymentGateway {
+  id                  String               @id @default(uuid())
+  merchantId          String
+  name                String
+  code                String
+  description         String?
+  logoUrl             String?
+  status              GatewayStatus        @default(ACTIVE)
+  isDefault           Boolean              @default(false)
+  supportedCountries  String[]             @default([])
+  supportedCurrencies String[]             @default([])
+  supportedMethods    String[]             @default([])
+  successRate         Decimal              @default(0) @db.Decimal(5, 2)
+  avgResponseMs       Int                  @default(0)
+  totalTransactions   Int                  @default(0)
+  costPercent         Decimal              @default(0) @db.Decimal(5, 4)
+  costFixed           Decimal              @default(0) @db.Decimal(18, 2)
+  priority            Int                  @default(0)
+  config              Json?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  merchant            Merchant             @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  routingRules        GatewayRoutingRule[]
+  events              GatewayEvent[]
+
+  @@index([merchantId])
+  @@map("payment_gateways")
+}
+
+model GatewayRoutingRule {
+  id         String             @id @default(uuid())
+  merchantId String
+  gatewayId  String
+  type       RoutingRuleType
+  value      String
+  priority   Int                @default(0)
+  isActive   Boolean            @default(true)
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  merchant   Merchant           @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  gateway    PaymentGateway     @relation(fields: [gatewayId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId])
+  @@index([gatewayId])
+  @@map("gateway_routing_rules")
+}
+
+model GatewayRoutingConfig {
+  id              String             @id @default(uuid())
+  merchantId      String             @unique
+  mode            GatewayRoutingMode @default(SUCCESS_RATE)
+  fallbackEnabled Boolean            @default(true)
+  maxRetries      Int                @default(2)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  merchant        Merchant           @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("gateway_routing_configs")
+}
+
+model GatewayEvent {
+  id            String           @id @default(uuid())
+  merchantId    String
+  gatewayId     String
+  transactionId String?
+  eventType     GatewayEventType
+  responseMs    Int?
+  errorCode     String?
+  errorMessage  String?
+  country       String?
+  currency      String?
+  amount        Decimal?         @db.Decimal(18, 2)
+  createdAt     DateTime         @default(now())
+  merchant      Merchant         @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  gateway       PaymentGateway   @relation(fields: [gatewayId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId, createdAt])
+  @@index([gatewayId])
+  @@map("gateway_events")
 }
