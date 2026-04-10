@@ -281,6 +281,30 @@ enum DynamicCheckoutTrigger {
   RETURNING_CUSTOMER
 }
 
+enum FraudRiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum FraudRuleAction {
+  ALLOW
+  BLOCK
+  REVIEW
+  CHALLENGE
+}
+
+enum FraudRuleType {
+  VELOCITY
+  AMOUNT_LIMIT
+  COUNTRY_BLOCK
+  IP_BLOCK
+  CARD_PATTERN
+  DUPLICATE_CHECK
+  CUSTOM
+}
+
 // ─────────────────────────────────────────────────────────────
 
 model Admin {
@@ -346,6 +370,8 @@ model Merchant {
   crossRetries         CrossGatewayRetry[]
   binLookups           BinLookup[]
   dynamicCheckouts     DynamicCheckout[]
+  fraudRules           FraudRule[]
+  fraudEvents          FraudEvent[]
 
   @@map("merchants")
 }
@@ -1032,61 +1058,107 @@ model BinLookup {
 }
 
 model DynamicCheckout {
-  id              String                  @id @default(uuid())
-  merchantId      String
-  name            String
-  description     String?
-  isActive        Boolean                 @default(true)
-  status          DynamicCheckoutStatus   @default(ACTIVE)
-  brandColor      String                  @default("#1A56DB")
-  logoUrl         String?
-  defaultCurrency String                  @default("SAR")
-  allowedMethods  String[]                @default([])
-  showBinHints    Boolean                 @default(true)
-  showGatewayName Boolean                 @default(false)
-  autoSelectGateway Boolean               @default(true)
-  usageCount      Int                     @default(0)
-  totalRevenue    Decimal                 @default(0) @db.Decimal(18, 2)
-  conversionRate  Decimal                 @default(0) @db.Decimal(5, 2)
-  createdAt       DateTime                @default(now())
-  updatedAt       DateTime                @updatedAt
-  merchant        Merchant                @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  rules           DynamicCheckoutRule[]
-  events          DynamicCheckoutEvent[]
+  id                String                 @id @default(uuid())
+  merchantId        String
+  name              String
+  description       String?
+  isActive          Boolean                @default(true)
+  status            DynamicCheckoutStatus  @default(ACTIVE)
+  brandColor        String                 @default("#1A56DB")
+  logoUrl           String?
+  defaultCurrency   String                 @default("SAR")
+  allowedMethods    String[]               @default([])
+  showBinHints      Boolean                @default(true)
+  showGatewayName   Boolean                @default(false)
+  autoSelectGateway Boolean                @default(true)
+  usageCount        Int                    @default(0)
+  totalRevenue      Decimal                @default(0) @db.Decimal(18, 2)
+  conversionRate    Decimal                @default(0) @db.Decimal(5, 2)
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  merchant          Merchant               @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  rules             DynamicCheckoutRule[]
+  events            DynamicCheckoutEvent[]
 
   @@index([merchantId])
   @@map("dynamic_checkouts")
 }
 
 model DynamicCheckoutRule {
-  id          String                  @id @default(uuid())
+  id          String                 @id @default(uuid())
   checkoutId  String
   trigger     DynamicCheckoutTrigger
   condition   String
   action      String
   actionValue String?
-  priority    Int                     @default(0)
-  isActive    Boolean                 @default(true)
-  createdAt   DateTime                @default(now())
-  updatedAt   DateTime                @updatedAt
-  checkout    DynamicCheckout         @relation(fields: [checkoutId], references: [id], onDelete: Cascade)
+  priority    Int                    @default(0)
+  isActive    Boolean                @default(true)
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  checkout    DynamicCheckout        @relation(fields: [checkoutId], references: [id], onDelete: Cascade)
 
   @@index([checkoutId])
   @@map("dynamic_checkout_rules")
 }
 
 model DynamicCheckoutEvent {
-  id            String          @id @default(uuid())
-  checkoutId    String
-  eventType     String
-  country       String?
-  currency      String?
-  amount        Decimal?        @db.Decimal(18, 2)
-  gatewayUsed   String?
-  completed     Boolean         @default(false)
-  createdAt     DateTime        @default(now())
-  checkout      DynamicCheckout @relation(fields: [checkoutId], references: [id], onDelete: Cascade)
+  id          String          @id @default(uuid())
+  checkoutId  String
+  eventType   String
+  country     String?
+  currency    String?
+  amount      Decimal?        @db.Decimal(18, 2)
+  gatewayUsed String?
+  completed   Boolean         @default(false)
+  createdAt   DateTime        @default(now())
+  checkout    DynamicCheckout @relation(fields: [checkoutId], references: [id], onDelete: Cascade)
 
   @@index([checkoutId])
   @@map("dynamic_checkout_events")
+}
+
+model FraudRule {
+  id          String          @id @default(uuid())
+  merchantId  String
+  name        String
+  description String?
+  type        FraudRuleType
+  action      FraudRuleAction @default(BLOCK)
+  riskScore   Int             @default(50)
+  conditions  Json
+  isActive    Boolean         @default(true)
+  triggerCount Int            @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  merchant    Merchant        @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId])
+  @@map("fraud_rules")
+}
+
+model FraudEvent {
+  id            String         @id @default(uuid())
+  merchantId    String
+  transactionId String?
+  riskScore     Int
+  riskLevel     FraudRiskLevel
+  action        FraudRuleAction
+  triggeredRules String[]      @default([])
+  signals       Json
+  customerPhone String?
+  customerEmail String?
+  country       String?
+  amount        Decimal?       @db.Decimal(18, 2)
+  currency      String?
+  ipAddress     String?
+  reviewed      Boolean        @default(false)
+  reviewNote    String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  merchant      Merchant       @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId])
+  @@index([merchantId, riskLevel])
+  @@index([merchantId, createdAt])
+  @@map("fraud_events")
 }
