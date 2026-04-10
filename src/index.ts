@@ -40,6 +40,7 @@ import gatewayRoutingRoutes from "./routes/gatewayRouting";
 import crossRetryRoutes from "./routes/crossRetry";
 import binRoutes from "./routes/bin";
 import dynamicCheckoutRoutes from "./routes/dynamicCheckout";
+import fraudRoutes from "./routes/fraud";
 
 const app = express();
 
@@ -90,6 +91,7 @@ app.use("/api/gateway-routing",   gatewayRoutingRoutes);
 app.use("/api/cross-retry",       crossRetryRoutes);
 app.use("/api/bin",               binRoutes);
 app.use("/api/dynamic-checkout",  dynamicCheckoutRoutes);
+app.use("/api/fraud",             fraudRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
