@@ -237,6 +237,19 @@ enum GatewayEventType {
   PARTIAL
 }
 
+enum CrossRetryStatus {
+  PENDING
+  SUCCEEDED
+  EXHAUSTED
+  CANCELLED
+}
+
+enum CrossRetryAttemptStatus {
+  SUCCESS
+  FAILED
+  TIMEOUT
+}
+
 // ─────────────────────────────────────────────────────────────
 
 model Admin {
@@ -299,6 +312,7 @@ model Merchant {
   gatewayRoutingRules  GatewayRoutingRule[]
   gatewayRoutingConfig GatewayRoutingConfig?
   gatewayEvents        GatewayEvent[]
+  crossRetries         CrossGatewayRetry[]
 
   @@map("merchants")
 }
@@ -902,4 +916,46 @@ model GatewayEvent {
   @@index([merchantId, createdAt])
   @@index([gatewayId])
   @@map("gateway_events")
+}
+
+model CrossGatewayRetry {
+  id                 String                     @id @default(uuid())
+  merchantId         String
+  transactionId      String?
+  originalGatewayId  String
+  amount             Decimal                    @db.Decimal(18, 2)
+  currency           String
+  country            String
+  method             String?
+  status             CrossRetryStatus           @default(PENDING)
+  maxAttempts        Int                        @default(3)
+  attemptCount       Int                        @default(0)
+  succeededGatewayId String?
+  errorSummary       String?
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+  merchant           Merchant                   @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  attempts           CrossGatewayRetryAttempt[]
+
+  @@index([merchantId])
+  @@index([merchantId, status])
+  @@map("cross_gateway_retries")
+}
+
+model CrossGatewayRetryAttempt {
+  id           String                  @id @default(uuid())
+  retryId      String
+  gatewayId    String
+  gatewayName  String
+  gatewayCode  String
+  attemptNum   Int
+  status       CrossRetryAttemptStatus
+  responseMs   Int?
+  errorCode    String?
+  errorMessage String?
+  executedAt   DateTime                @default(now())
+  retry        CrossGatewayRetry       @relation(fields: [retryId], references: [id], onDelete: Cascade)
+
+  @@index([retryId])
+  @@map("cross_gateway_retry_attempts")
 }
