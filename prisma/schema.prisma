@@ -258,6 +258,7 @@ model Merchant {
   reconciliations      ReconciliationReport[]
   eventLogs            EventLog[]
   otpCodes             OtpCode[]
+  customers            Customer[]
   sentTransfers        Transfer[]             @relation("SentTransfers")
   receivedTransfers    Transfer[]             @relation("ReceivedTransfers")
 
@@ -655,30 +656,30 @@ model FxRate {
 }
 
 model HostedCheckout {
-  id                String           @id @default(uuid())
+  id                String            @id @default(uuid())
   merchantId        String
-  checkoutId        String           @unique
+  checkoutId        String            @unique
   name              String
   description       String?
   logoUrl           String?
-  brandColor        String           @default("#1A56DB")
-  theme             CheckoutTheme    @default(DARK)
-  currency          String           @default("SAR")
+  brandColor        String            @default("#1A56DB")
+  theme             CheckoutTheme     @default(DARK)
+  currency          String            @default("SAR")
   allowedCurrencies String[]
   allowedMethods    String[]
-  requirePhone      Boolean          @default(false)
-  requireAddress    Boolean          @default(false)
-  allowNote         Boolean          @default(false)
+  requirePhone      Boolean           @default(false)
+  requireAddress    Boolean           @default(false)
+  allowNote         Boolean           @default(false)
   successUrl        String?
   cancelUrl         String?
   webhookUrl        String?
-  isActive          Boolean          @default(true)
-  status            CheckoutStatus   @default(ACTIVE)
-  usageCount        Int              @default(0)
-  totalRevenue      Decimal          @default(0) @db.Decimal(18, 2)
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-  merchant          Merchant         @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  isActive          Boolean           @default(true)
+  status            CheckoutStatus    @default(ACTIVE)
+  usageCount        Int               @default(0)
+  totalRevenue      Decimal           @default(0) @db.Decimal(18, 2)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  merchant          Merchant          @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   sessions          CheckoutSession[]
 
   @@map("hosted_checkouts")
@@ -703,4 +704,32 @@ model CheckoutSession {
   checkout        HostedCheckout @relation(fields: [checkoutId], references: [id], onDelete: Cascade)
 
   @@map("checkout_sessions")
+}
+
+model Customer {
+  id            String   @id @default(uuid())
+  customerId    String   @unique @default(uuid())
+  merchantId    String
+  name          String
+  phone         String?
+  email         String?
+  city          String?
+  country       String?
+  tags          String[] @default([])
+  notes         String?
+  firstSeenAt   DateTime @default(now())
+  lastSeenAt    DateTime @default(now())
+  totalSpent    Float    @default(0)
+  totalOrders   Int      @default(0)
+  avgOrderValue Float    @default(0)
+  refundCount   Int      @default(0)
+  refundAmount  Float    @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  merchant      Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId])
+  @@index([merchantId, totalSpent])
+  @@index([merchantId, lastSeenAt])
+  @@map("customers")
 }
