@@ -246,7 +246,7 @@ export async function toggleWallet(req: AuthenticatedRequest, res: Response): Pr
 }
 
 // ─── GET /api/wallets/rates ───────────────────────────────────
-export async function getWalletRates(req: AuthenticatedRequest, res: Response): Promise<void> {
+export async function getWalletRates(_req: AuthenticatedRequest, res: Response): Promise<void> {
   try {
     const pairs = ["SAR", "AED", "TRY", "USD", "EUR", "KWD", "QAR"];
     const rates: Record<string, number> = {};
