@@ -95,86 +95,46 @@ export const getStats = async (req: AuthenticatedRequest, res: Response): Promis
   } catch (err) { res.status(500).json({ success: false, error: 'Failed to fetch stats' }); return; }
 };
 
-// ─────────────────────────────────────────────────────────────
-// ELITE #16: ML Scoring + Device Fingerprint
-// ─────────────────────────────────────────────────────────────
-
-// POST /api/fraud/ml-score
-// ML-style scoring: يحسب risk score مُحسّن بناءً على behavioral patterns
 export const mlScore = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const merchantId = req.merchant.id;
-  const { amount, currency, country, customerPhone, customerEmail, ipAddress, deviceFingerprint, userAgent, sessionDurationSeconds, pageViews, billingCountry, shippingCountry, isVpn = false, isProxy = false, timezoneOffset } = req.body;
+  // customerEmail, ipAddress, userAgent, timezoneOffset: received for logging/future use — not used in current scoring logic
+  const { amount, currency, country, customerPhone, customerEmail: _customerEmail, ipAddress: _ipAddress, deviceFingerprint, userAgent: _userAgent, sessionDurationSeconds, pageViews, billingCountry, shippingCountry, isVpn = false, isProxy = false, timezoneOffset: _timezoneOffset } = req.body;
+  void _customerEmail; void _ipAddress; void _userAgent; void _timezoneOffset;
   if (!amount || !currency) { res.status(400).json({ success: false, error: 'amount and currency are required' }); return; }
   try {
-    let mlScore = 0; const mlSignals: Record<string, any> = {};
-
-    // 1. Behavioral signals
-    if (sessionDurationSeconds !== undefined && sessionDurationSeconds < 30) { mlScore += 20; mlSignals.fastSession = `${sessionDurationSeconds}s — unusually fast`; }
-    if (pageViews !== undefined && pageViews <= 1) { mlScore += 15; mlSignals.directCheckout = 'Went directly to checkout — no browsing'; }
-
-    // 2. Device fingerprint signals
+    let score = 0; const mlSignals: Record<string, any> = {};
+    if (sessionDurationSeconds !== undefined && sessionDurationSeconds < 30) { score += 20; mlSignals.fastSession = `${sessionDurationSeconds}s — unusually fast`; }
+    if (pageViews !== undefined && pageViews <= 1) { score += 15; mlSignals.directCheckout = 'Went directly to checkout — no browsing'; }
     if (deviceFingerprint) {
       const recentByDevice: any[] = await prisma.$queryRawUnsafe(`SELECT COUNT(*) as cnt FROM fraud_events WHERE "merchantId"=$1 AND signals::text LIKE $2 AND "createdAt">=NOW()-INTERVAL '24 hours'`, merchantId, `%${deviceFingerprint}%`);
       const deviceCount = Number(recentByDevice[0]?.cnt || 0);
-      if (deviceCount > 3) { mlScore += 25; mlSignals.deviceAbuse = `Device seen ${deviceCount} times in 24h`; }
+      if (deviceCount > 3) { score += 25; mlSignals.deviceAbuse = `Device seen ${deviceCount} times in 24h`; }
     }
-
-    // 3. IP/Network signals
-    if (isVpn) { mlScore += 20; mlSignals.vpnDetected = 'VPN usage detected — elevated risk'; }
-    if (isProxy) { mlScore += 25; mlSignals.proxyDetected = 'Proxy detected — high risk'; }
-
-    // 4. Geo mismatch
-    if (billingCountry && shippingCountry && billingCountry !== shippingCountry) { mlScore += 15; mlSignals.geoMismatch = `Billing: ${billingCountry} vs Shipping: ${shippingCountry}`; }
-    if (billingCountry && country && billingCountry !== country) { mlScore += 10; mlSignals.ipCountryMismatch = `IP country: ${country} vs Billing: ${billingCountry}`; }
-
-    // 5. Transaction velocity (last 1h)
+    if (isVpn) { score += 20; mlSignals.vpnDetected = 'VPN usage detected — elevated risk'; }
+    if (isProxy) { score += 25; mlSignals.proxyDetected = 'Proxy detected — high risk'; }
+    if (billingCountry && shippingCountry && billingCountry !== shippingCountry) { score += 15; mlSignals.geoMismatch = `Billing: ${billingCountry} vs Shipping: ${shippingCountry}`; }
+    if (billingCountry && country && billingCountry !== country) { score += 10; mlSignals.ipCountryMismatch = `IP country: ${country} vs Billing: ${billingCountry}`; }
     if (customerPhone) {
       const velocity = await prisma.transaction.count({ where: { merchantId, customerPhone, createdAt: { gte: new Date(Date.now() - 3600000) } } });
-      if (velocity >= 3) { mlScore += 20; mlSignals.velocityAlert = `${velocity} transactions in last hour`; }
-    }
-
-    // 6. Amount anomaly
-    if (customerPhone) {
+      if (velocity >= 3) { score += 20; mlSignals.velocityAlert = `${velocity} transactions in last hour`; }
       const history = await prisma.transaction.findMany({ where: { merchantId, customerPhone, status: 'SUCCESS' }, select: { amount: true }, take: 20 });
       if (history.length >= 5) {
         const amounts = history.map(t => Number(t.amount)); const avgAmount = amounts.reduce((a, b) => a + b, 0) / amounts.length;
-        if (Number(amount) > avgAmount * 3) { mlScore += 15; mlSignals.amountAnomaly = `Amount ${amount} is ${Math.round(Number(amount)/avgAmount)}x above average ${Math.round(avgAmount)}`; }
+        if (Number(amount) > avgAmount * 3) { score += 15; mlSignals.amountAnomaly = `Amount ${amount} is ${Math.round(Number(amount)/avgAmount)}x above average ${Math.round(avgAmount)}`; }
       }
     }
-
-    const finalScore = Math.min(mlScore, 100);
-    const riskLevel = calculateRiskLevel(finalScore);
-    const action = finalScore >= 70 ? 'BLOCK' : finalScore >= 40 ? 'REVIEW' : 'ALLOW';
-
-    res.json({
-      success: true,
-      data: {
-        mlScore: finalScore,
-        riskLevel,
-        action,
-        mlSignals,
-        breakdown: {
-          behavioral: mlSignals.fastSession || mlSignals.directCheckout ? 'elevated' : 'normal',
-          device: mlSignals.deviceAbuse ? 'high_risk' : 'normal',
-          network: (mlSignals.vpnDetected || mlSignals.proxyDetected) ? 'elevated' : 'normal',
-          geo: (mlSignals.geoMismatch || mlSignals.ipCountryMismatch) ? 'mismatch' : 'consistent',
-          velocity: mlSignals.velocityAlert ? 'high' : 'normal',
-          amount: mlSignals.amountAnomaly ? 'anomalous' : 'normal',
-        },
-        recommendation: action === 'BLOCK' ? 'Block this transaction immediately' : action === 'REVIEW' ? 'Flag for manual review before processing' : 'Low risk — proceed with transaction',
-      },
-    }); return;
+    const finalScore = Math.min(score, 100); const riskLevel = calculateRiskLevel(finalScore); const action = finalScore >= 70 ? 'BLOCK' : finalScore >= 40 ? 'REVIEW' : 'ALLOW';
+    res.json({ success: true, data: { mlScore: finalScore, riskLevel, action, mlSignals, breakdown: { behavioral: mlSignals.fastSession || mlSignals.directCheckout ? 'elevated' : 'normal', device: mlSignals.deviceAbuse ? 'high_risk' : 'normal', network: (mlSignals.vpnDetected || mlSignals.proxyDetected) ? 'elevated' : 'normal', geo: (mlSignals.geoMismatch || mlSignals.ipCountryMismatch) ? 'mismatch' : 'consistent', velocity: mlSignals.velocityAlert ? 'high' : 'normal', amount: mlSignals.amountAnomaly ? 'anomalous' : 'normal' }, recommendation: action === 'BLOCK' ? 'Block this transaction immediately' : action === 'REVIEW' ? 'Flag for manual review before processing' : 'Low risk — proceed with transaction' } }); return;
   } catch (err) { res.status(500).json({ success: false, error: 'ML scoring failed' }); return; }
 };
 
-// POST /api/fraud/device-fingerprint
-// يسجّل device fingerprint ويتحقق من تاريخه
 export const checkDeviceFingerprint = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const merchantId = req.merchant.id;
-  const { fingerprint, customerPhone, userAgent, screenResolution, timezone } = req.body;
+  // customerPhone, userAgent, screenResolution, timezone: accepted for future enrichment — not used in current logic
+  const { fingerprint, customerPhone: _customerPhone, userAgent: _userAgent, screenResolution: _screenResolution, timezone: _timezone } = req.body;
+  void _customerPhone; void _userAgent; void _screenResolution; void _timezone;
   if (!fingerprint) { res.status(400).json({ success: false, error: 'fingerprint is required' }); return; }
   try {
-    // ابحث عن هذا الـ fingerprint في تاريخ الـ fraud events
     const history: any[] = await prisma.$queryRawUnsafe(`SELECT COUNT(*) as total, SUM(CASE WHEN action='BLOCK' THEN 1 ELSE 0 END) as blocked FROM fraud_events WHERE "merchantId"=$1 AND signals::text LIKE $2`, merchantId, `%${fingerprint}%`);
     const totalSeen = Number(history[0]?.total || 0); const timesBlocked = Number(history[0]?.blocked || 0);
     const riskScore = timesBlocked > 0 ? Math.min(timesBlocked * 30, 90) : totalSeen > 5 ? 25 : 0;
