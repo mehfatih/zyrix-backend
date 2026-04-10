@@ -38,6 +38,7 @@ import featureFlagsRoutes from "./routes/featureFlags";
 import walletsRoutes from "./routes/wallets";
 import gatewayRoutingRoutes from "./routes/gatewayRouting";
 import crossRetryRoutes from "./routes/crossRetry";
+import binRoutes from "./routes/bin";
 
 const app = express();
 
@@ -86,6 +87,7 @@ app.use("/api/feature-flags",     featureFlagsRoutes);
 app.use("/api/wallets",           walletsRoutes);
 app.use("/api/gateway-routing",   gatewayRoutingRoutes);
 app.use("/api/cross-retry",       crossRetryRoutes);
+app.use("/api/bin",               binRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
