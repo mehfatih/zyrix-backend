@@ -42,6 +42,7 @@ import crossRetryRoutes from "./routes/crossRetry";
 import binRoutes from "./routes/bin";
 import dynamicCheckoutRoutes from "./routes/dynamicCheckout";
 import fraudRoutes from "./routes/fraud";
+import growthRoutes from "./routes/growth";
 
 const app = express();
 
@@ -94,6 +95,7 @@ app.use("/api/cross-retry",            crossRetryRoutes);
 app.use("/api/bin",                    binRoutes);
 app.use("/api/dynamic-checkout",       dynamicCheckoutRoutes);
 app.use("/api/fraud",                  fraudRoutes);
+app.use("/api/growth",                 growthRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
