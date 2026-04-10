@@ -267,6 +267,20 @@ enum BinCardBrand {
   OTHER
 }
 
+enum DynamicCheckoutStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum DynamicCheckoutTrigger {
+  AMOUNT_RANGE
+  CUSTOMER_COUNTRY
+  PAYMENT_METHOD
+  TIME_OF_DAY
+  RETURNING_CUSTOMER
+}
+
 // ─────────────────────────────────────────────────────────────
 
 model Admin {
@@ -331,6 +345,7 @@ model Merchant {
   gatewayEvents        GatewayEvent[]
   crossRetries         CrossGatewayRetry[]
   binLookups           BinLookup[]
+  dynamicCheckouts     DynamicCheckout[]
 
   @@map("merchants")
 }
@@ -979,28 +994,28 @@ model CrossGatewayRetryAttempt {
 }
 
 model BinRecord {
-  id               String       @id @default(uuid())
-  bin              String       @unique
-  cardBrand        BinCardBrand @default(OTHER)
-  cardType         BinCardType  @default(UNKNOWN)
-  bankName         String?
-  bankCountry      String?
-  bankCountryCode  String?
-  currency         String?
-  issuingNetwork   String?
-  prepaidFlag      Boolean      @default(false)
-  commercialFlag   Boolean      @default(false)
+  id                 String       @id @default(uuid())
+  bin                String       @unique
+  cardBrand          BinCardBrand @default(OTHER)
+  cardType           BinCardType  @default(UNKNOWN)
+  bankName           String?
+  bankCountry        String?
+  bankCountryCode    String?
+  currency           String?
+  issuingNetwork     String?
+  prepaidFlag        Boolean      @default(false)
+  commercialFlag     Boolean      @default(false)
   recommendedGateway String?
-  successRateHint  Decimal?     @db.Decimal(5, 2)
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  successRateHint    Decimal?     @db.Decimal(5, 2)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
 
   @@index([bin])
   @@map("bin_records")
 }
 
 model BinLookup {
-  id          String    @id @default(uuid())
+  id          String   @id @default(uuid())
   merchantId  String
   bin         String
   cardBrand   String?
@@ -1008,10 +1023,70 @@ model BinLookup {
   bankName    String?
   bankCountry String?
   gatewayHint String?
-  createdAt   DateTime  @default(now())
-  merchant    Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  merchant    Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
 
   @@index([merchantId])
   @@index([bin])
   @@map("bin_lookups")
+}
+
+model DynamicCheckout {
+  id              String                  @id @default(uuid())
+  merchantId      String
+  name            String
+  description     String?
+  isActive        Boolean                 @default(true)
+  status          DynamicCheckoutStatus   @default(ACTIVE)
+  brandColor      String                  @default("#1A56DB")
+  logoUrl         String?
+  defaultCurrency String                  @default("SAR")
+  allowedMethods  String[]                @default([])
+  showBinHints    Boolean                 @default(true)
+  showGatewayName Boolean                 @default(false)
+  autoSelectGateway Boolean               @default(true)
+  usageCount      Int                     @default(0)
+  totalRevenue    Decimal                 @default(0) @db.Decimal(18, 2)
+  conversionRate  Decimal                 @default(0) @db.Decimal(5, 2)
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  merchant        Merchant                @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  rules           DynamicCheckoutRule[]
+  events          DynamicCheckoutEvent[]
+
+  @@index([merchantId])
+  @@map("dynamic_checkouts")
+}
+
+model DynamicCheckoutRule {
+  id          String                  @id @default(uuid())
+  checkoutId  String
+  trigger     DynamicCheckoutTrigger
+  condition   String
+  action      String
+  actionValue String?
+  priority    Int                     @default(0)
+  isActive    Boolean                 @default(true)
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+  checkout    DynamicCheckout         @relation(fields: [checkoutId], references: [id], onDelete: Cascade)
+
+  @@index([checkoutId])
+  @@map("dynamic_checkout_rules")
+}
+
+model DynamicCheckoutEvent {
+  id            String          @id @default(uuid())
+  checkoutId    String
+  eventType     String
+  country       String?
+  currency      String?
+  amount        Decimal?        @db.Decimal(18, 2)
+  gatewayUsed   String?
+  completed     Boolean         @default(false)
+  createdAt     DateTime        @default(now())
+  checkout      DynamicCheckout @relation(fields: [checkoutId], references: [id], onDelete: Cascade)
+
+  @@index([checkoutId])
+  @@map("dynamic_checkout_events")
 }
