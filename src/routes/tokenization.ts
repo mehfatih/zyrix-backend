@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { authenticate } from '../middleware/auth';
+import { authenticateToken } from '../middleware/auth';
 import { listTokens, createToken, getToken, updateToken, deleteToken, chargeToken, getStats } from '../controllers/tokenizationController';
 
 const router = Router();
-router.use(authenticate);
+router.use(authenticateToken);
 
 router.get('/',            listTokens);
 router.post('/',           createToken);
