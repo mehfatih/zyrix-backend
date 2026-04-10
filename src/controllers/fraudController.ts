@@ -13,7 +13,7 @@ function calculateRiskLevel(score: number): string {
 // ─── POST /api/fraud/analyze ──────────────────────────────────
 export const analyzeTransaction = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const merchantId = req.merchant.id;
-  const { transactionId, amount, currency, country, customerPhone, customerEmail, ipAddress, method } = req.body;
+  const { transactionId, amount, currency, country, customerPhone, customerEmail, ipAddress } = req.body;
   if (!amount || !currency) {
     res.status(400).json({ success: false, error: 'amount and currency are required' });
     return;
@@ -23,7 +23,6 @@ export const analyzeTransaction = async (req: AuthenticatedRequest, res: Respons
     const since1h  = new Date(Date.now() - 3600000);
     const since24h = new Date(Date.now() - 86400000);
 
-    // جلب المعاملات الأخيرة
     const recentByPhone = customerPhone
       ? await prisma.transaction.count({ where: { merchantId, customerPhone, createdAt: { gte: since1h } } })
       : 0;
@@ -39,7 +38,6 @@ export const analyzeTransaction = async (req: AuthenticatedRequest, res: Respons
     const triggeredRules: string[] = [];
     let finalAction = 'ALLOW';
 
-    // تحليل كل قاعدة
     for (const rule of rules) {
       const cond = rule.conditions as any;
       let triggered = false;
@@ -79,7 +77,6 @@ export const analyzeTransaction = async (req: AuthenticatedRequest, res: Respons
       }
     }
 
-    // Signals بدون قواعد
     if (recentByPhone > 2) { signals.velocityPhone = recentByPhone; totalScore += 15; }
     if (recentByEmail > 2) { signals.velocityEmail = recentByEmail; totalScore += 10; }
     if (Number(amount) > 5000) { signals.highAmount = Number(amount); totalScore += 10; }
