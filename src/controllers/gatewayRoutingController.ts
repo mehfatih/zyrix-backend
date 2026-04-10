@@ -298,7 +298,7 @@ export const getAnalytics = async (req: AuthenticatedRequest, res: Response): Pr
 // ─── POST /api/gateway-routing/route ─────────────────────────
 export const routeTransaction = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const merchantId = req.merchant.id;
-  const { country, currency, _amount, method } = req.body;
+  const { country, currency, method } = req.body;
   if (!country || !currency) {
     res.status(400).json({ success: false, error: 'country and currency are required' });
     return;
