@@ -250,6 +250,23 @@ enum CrossRetryAttemptStatus {
   TIMEOUT
 }
 
+enum BinCardType {
+  CREDIT
+  DEBIT
+  PREPAID
+  UNKNOWN
+}
+
+enum BinCardBrand {
+  VISA
+  MASTERCARD
+  AMEX
+  MADA
+  MEEZA
+  TROY
+  OTHER
+}
+
 // ─────────────────────────────────────────────────────────────
 
 model Admin {
@@ -313,6 +330,7 @@ model Merchant {
   gatewayRoutingConfig GatewayRoutingConfig?
   gatewayEvents        GatewayEvent[]
   crossRetries         CrossGatewayRetry[]
+  binLookups           BinLookup[]
 
   @@map("merchants")
 }
@@ -958,4 +976,42 @@ model CrossGatewayRetryAttempt {
 
   @@index([retryId])
   @@map("cross_gateway_retry_attempts")
+}
+
+model BinRecord {
+  id               String       @id @default(uuid())
+  bin              String       @unique
+  cardBrand        BinCardBrand @default(OTHER)
+  cardType         BinCardType  @default(UNKNOWN)
+  bankName         String?
+  bankCountry      String?
+  bankCountryCode  String?
+  currency         String?
+  issuingNetwork   String?
+  prepaidFlag      Boolean      @default(false)
+  commercialFlag   Boolean      @default(false)
+  recommendedGateway String?
+  successRateHint  Decimal?     @db.Decimal(5, 2)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([bin])
+  @@map("bin_records")
+}
+
+model BinLookup {
+  id          String    @id @default(uuid())
+  merchantId  String
+  bin         String
+  cardBrand   String?
+  cardType    String?
+  bankName    String?
+  bankCountry String?
+  gatewayHint String?
+  createdAt   DateTime  @default(now())
+  merchant    Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId])
+  @@index([bin])
+  @@map("bin_lookups")
 }
