@@ -192,7 +192,7 @@ export async function retryRecovery(req: AuthenticatedRequest, res: Response): P
 export async function getCRMCustomers(req: AuthenticatedRequest, res: Response): Promise<void> {
   try {
     const merchantId = req.merchant.id;
-    const { segment, search, page = '1', limit = '20' } = req.query;
+    const { search, page = '1', limit = '20' } = req.query;
     const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
 
     let where = `WHERE c."merchantId"=$1`;
