@@ -50,5 +50,5 @@ COPY --from=builder /app/dist ./dist
 # Expose port (Railway sets PORT automatically)
 EXPOSE ${PORT:-3000}
 
-# Start server
-CMD ["node", "dist/index.js"]
+# Push schema then start server
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node dist/index.js"]
