@@ -2,7 +2,6 @@ import { Response } from 'express';
 import { prisma } from '../config/database';
 import { AuthenticatedRequest } from '../types';
 
-// ─── Risk scoring engine ──────────────────────────────────────
 function calculateRiskLevel(score: number): string {
   if (score >= 80) return 'CRITICAL';
   if (score >= 60) return 'HIGH';
@@ -10,7 +9,6 @@ function calculateRiskLevel(score: number): string {
   return 'LOW';
 }
 
-// ─── POST /api/fraud/analyze ──────────────────────────────────
 export const analyzeTransaction = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const merchantId = req.merchant.id;
   const { transactionId, amount, currency, country, customerPhone, customerEmail, ipAddress } = req.body;
@@ -108,7 +106,6 @@ export const analyzeTransaction = async (req: AuthenticatedRequest, res: Respons
   }
 };
 
-// ─── GET /api/fraud/events ────────────────────────────────────
 export const listEvents = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const merchantId = req.merchant.id;
   const { riskLevel, reviewed, page = '1', limit = '20' } = req.query;
@@ -117,18 +114,13 @@ export const listEvents = async (req: AuthenticatedRequest, res: Response): Prom
     const where: any = { merchantId };
     if (riskLevel) where.riskLevel = riskLevel;
     if (reviewed !== undefined) where.reviewed = reviewed === 'true';
-
     const [events, total] = await Promise.all([
       prisma.fraudEvent.findMany({ where, orderBy: { createdAt: 'desc' }, skip, take: parseInt(limit as string) }),
       prisma.fraudEvent.count({ where }),
     ]);
-
     res.json({
       success: true,
-      data: {
-        events,
-        pagination: { page: parseInt(page as string), limit: parseInt(limit as string), total, pages: Math.ceil(total / parseInt(limit as string)) },
-      },
+      data: { events, pagination: { page: parseInt(page as string), limit: parseInt(limit as string), total, pages: Math.ceil(total / parseInt(limit as string)) } },
     });
     return;
   } catch (err) {
@@ -137,7 +129,6 @@ export const listEvents = async (req: AuthenticatedRequest, res: Response): Prom
   }
 };
 
-// ─── PATCH /api/fraud/events/:id/review ──────────────────────
 export const reviewEvent = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const merchantId = req.merchant.id;
   const { id } = req.params;
@@ -154,7 +145,6 @@ export const reviewEvent = async (req: AuthenticatedRequest, res: Response): Pro
   }
 };
 
-// ─── GET /api/fraud/rules ─────────────────────────────────────
 export const listRules = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const merchantId = req.merchant.id;
   try {
@@ -167,7 +157,6 @@ export const listRules = async (req: AuthenticatedRequest, res: Response): Promi
   }
 };
 
-// ─── POST /api/fraud/rules ────────────────────────────────────
 export const createRule = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const merchantId = req.merchant.id;
   const { name, description, type, action, riskScore, conditions } = req.body;
@@ -187,7 +176,6 @@ export const createRule = async (req: AuthenticatedRequest, res: Response): Prom
   }
 };
 
-// ─── PATCH /api/fraud/rules/:id ──────────────────────────────
 export const updateRule = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const merchantId = req.merchant.id;
   const { id } = req.params;
@@ -214,7 +202,6 @@ export const updateRule = async (req: AuthenticatedRequest, res: Response): Prom
   }
 };
 
-// ─── DELETE /api/fraud/rules/:id ─────────────────────────────
 export const deleteRule = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const merchantId = req.merchant.id;
   const { id } = req.params;
@@ -230,7 +217,6 @@ export const deleteRule = async (req: AuthenticatedRequest, res: Response): Prom
   }
 };
 
-// ─── GET /api/fraud/stats ─────────────────────────────────────
 export const getStats = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const merchantId = req.merchant.id;
   const days = parseInt(req.query.days as string) || 30;
@@ -247,11 +233,9 @@ export const getStats = async (req: AuthenticatedRequest, res: Response): Promis
     const low      = events.filter(e => e.riskLevel === 'LOW').length;
     const avgScore = total > 0 ? Math.round(events.reduce((s, e) => s + e.riskScore, 0) / total) : 0;
     const unreviewed = events.filter(e => (e.action === 'REVIEW' || e.riskLevel === 'HIGH' || e.riskLevel === 'CRITICAL') && !e.reviewed).length;
-
     const topRules: Record<string, number> = {};
     events.forEach(e => { (e.triggeredRules as string[]).forEach((r: string) => { topRules[r] = (topRules[r] || 0) + 1; }); });
     const topRulesSorted = Object.entries(topRules).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([name, count]) => ({ name, count }));
-
     res.json({
       success: true,
       data: { period: `${days}d`, total, blocked, reviewed, allowed, critical, high, medium, low, avgScore, unreviewed, topRules: topRulesSorted },
