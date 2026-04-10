@@ -17,25 +17,23 @@ export const initiateRetry = async (req: AuthenticatedRequest, res: Response): P
       return;
     }
 
-    // Get routing config for maxRetries default
     const config = await prisma.gatewayRoutingConfig.findUnique({ where: { merchantId } });
     const resolvedMax = maxAttempts || config?.maxRetries || 3;
+    const retryId = crypto.randomUUID();
+    const now = new Date().toISOString();
 
-    const retry = await prisma.crossGatewayRetry.create({
-      data: {
-        merchantId,
-        transactionId: transactionId || null,
-        originalGatewayId,
-        amount,
-        currency,
-        country,
-        method: method || null,
-        maxAttempts: resolvedMax,
-        status: 'PENDING',
-      },
-    });
+    await prisma.$executeRawUnsafe(
+      `INSERT INTO cross_gateway_retries (id, "merchantId", "transactionId", "originalGatewayId", amount, currency, country, method, status, "maxAttempts", "attemptCount", "createdAt", "updatedAt")
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'PENDING',$9,0,$10,$11)`,
+      retryId, merchantId, transactionId || null, originalGatewayId,
+      amount, currency, country, method || null, resolvedMax, now, now
+    );
 
-    // Find eligible fallback gateways (exclude original)
+    const rows: any[] = await prisma.$queryRawUnsafe(
+      `SELECT * FROM cross_gateway_retries WHERE id = $1`, retryId
+    );
+    const retry = rows[0];
+
     const gateways = await prisma.paymentGateway.findMany({
       where: { merchantId, status: 'ACTIVE', id: { not: originalGatewayId } },
       include: { routingRules: { where: { isActive: true } } },
@@ -43,10 +41,10 @@ export const initiateRetry = async (req: AuthenticatedRequest, res: Response): P
     });
 
     const eligible = gateways.filter((gw) => {
-      const countryRules = gw.routingRules.filter(r => r.type === 'COUNTRY');
-      const currencyRules = gw.routingRules.filter(r => r.type === 'CURRENCY');
-      if (countryRules.length && !countryRules.some(r => r.value === country)) return false;
-      if (currencyRules.length && !currencyRules.some(r => r.value === currency)) return false;
+      const countryRules = gw.routingRules.filter((r: any) => r.type === 'COUNTRY');
+      const currencyRules = gw.routingRules.filter((r: any) => r.type === 'CURRENCY');
+      if (countryRules.length && !countryRules.some((r: any) => r.value === country)) return false;
+      if (currencyRules.length && !currencyRules.some((r: any) => r.value === currency)) return false;
       return true;
     });
 
@@ -54,7 +52,7 @@ export const initiateRetry = async (req: AuthenticatedRequest, res: Response): P
       success: true,
       data: {
         retry,
-        eligibleGateways: eligible.map(g => ({ id: g.id, name: g.name, code: g.code, successRate: Number(g.successRate) })),
+        eligibleGateways: eligible.map((g: any) => ({ id: g.id, name: g.name, code: g.code, successRate: Number(g.successRate) })),
         message: `${eligible.length} gateway(s) available for retry`,
       },
     });
@@ -75,11 +73,15 @@ export const recordAttempt = async (req: AuthenticatedRequest, res: Response): P
     return;
   }
   try {
-    const retry = await prisma.crossGatewayRetry.findFirst({ where: { id: retryId, merchantId } });
-    if (!retry) {
+    const retryRows: any[] = await prisma.$queryRawUnsafe(
+      `SELECT * FROM cross_gateway_retries WHERE id = $1 AND "merchantId" = $2`, retryId, merchantId
+    );
+    if (!retryRows.length) {
       res.status(404).json({ success: false, error: 'Retry session not found' });
       return;
     }
+    const retry = retryRows[0];
+
     if (retry.status === 'SUCCEEDED' || retry.status === 'EXHAUSTED' || retry.status === 'CANCELLED') {
       res.status(400).json({ success: false, error: `Retry session is already ${retry.status}` });
       return;
@@ -91,41 +93,47 @@ export const recordAttempt = async (req: AuthenticatedRequest, res: Response): P
       return;
     }
 
-    const attemptNum = retry.attemptCount + 1;
-    const attempt = await prisma.crossGatewayRetryAttempt.create({
-      data: {
-        retryId,
-        gatewayId,
-        gatewayName: gateway.name,
-        gatewayCode: gateway.code,
-        attemptNum,
-        status,
-        responseMs: responseMs || null,
-        errorCode: errorCode || null,
-        errorMessage: errorMessage || null,
-      },
-    });
+    const attemptNum = Number(retry.attemptCount) + 1;
+    const attemptId = crypto.randomUUID();
+    const now = new Date().toISOString();
 
-    // Determine new retry status
-    let newRetryStatus: 'PENDING' | 'SUCCEEDED' | 'EXHAUSTED' = 'PENDING';
-    if (status === 'SUCCESS') {
-      newRetryStatus = 'SUCCEEDED';
-    } else if (attemptNum >= retry.maxAttempts) {
-      newRetryStatus = 'EXHAUSTED';
-    }
+    await prisma.$executeRawUnsafe(
+      `INSERT INTO cross_gateway_retry_attempts (id, "retryId", "gatewayId", "gatewayName", "gatewayCode", "attemptNum", status, "responseMs", "errorCode", "errorMessage", "executedAt")
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+      attemptId, retryId, gatewayId, gateway.name, gateway.code,
+      attemptNum, status, responseMs || null, errorCode || null, errorMessage || null, now
+    );
 
-    const updatedRetry = await prisma.crossGatewayRetry.update({
-      where: { id: retryId },
-      data: {
-        attemptCount: attemptNum,
-        status: newRetryStatus,
-        ...(status === 'SUCCESS' && { succeededGatewayId: gatewayId }),
-        ...(newRetryStatus === 'EXHAUSTED' && { errorSummary: `Failed after ${attemptNum} attempts. Last error: ${errorMessage || errorCode || 'Unknown'}` }),
-      },
-      include: { attempts: { orderBy: { attemptNum: 'asc' } } },
-    });
+    const attemptRows: any[] = await prisma.$queryRawUnsafe(
+      `SELECT * FROM cross_gateway_retry_attempts WHERE id = $1`, attemptId
+    );
+    const attempt = attemptRows[0];
 
-    res.status(201).json({ success: true, data: { attempt, retry: updatedRetry } });
+    let newRetryStatus = 'PENDING';
+    if (status === 'SUCCESS') newRetryStatus = 'SUCCEEDED';
+    else if (attemptNum >= Number(retry.maxAttempts)) newRetryStatus = 'EXHAUSTED';
+
+    const errorSummary = newRetryStatus === 'EXHAUSTED'
+      ? `Failed after ${attemptNum} attempts. Last error: ${errorMessage || errorCode || 'Unknown'}`
+      : null;
+
+    const succeededGatewayId = status === 'SUCCESS' ? gatewayId : null;
+
+    await prisma.$executeRawUnsafe(
+      `UPDATE cross_gateway_retries SET "attemptCount"=$1, status=$2, "succeededGatewayId"=COALESCE($3,"succeededGatewayId"), "errorSummary"=COALESCE($4,"errorSummary"), "updatedAt"=$5 WHERE id=$6`,
+      attemptNum, newRetryStatus, succeededGatewayId, errorSummary, new Date().toISOString(), retryId
+    );
+
+    const updatedRows: any[] = await prisma.$queryRawUnsafe(
+      `SELECT * FROM cross_gateway_retries WHERE id = $1`, retryId
+    );
+    const updatedRetry = updatedRows[0];
+
+    const allAttempts: any[] = await prisma.$queryRawUnsafe(
+      `SELECT * FROM cross_gateway_retry_attempts WHERE "retryId" = $1 ORDER BY "attemptNum" ASC`, retryId
+    );
+
+    res.status(201).json({ success: true, data: { attempt, retry: { ...updatedRetry, attempts: allAttempts } } });
     return;
   } catch (err) {
     res.status(500).json({ success: false, error: 'Failed to record attempt' });
@@ -138,28 +146,36 @@ export const listRetries = async (req: AuthenticatedRequest, res: Response): Pro
   const merchantId = req.merchant.id;
   const { status, page = '1', limit = '20' } = req.query;
   const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
+  const take = parseInt(limit as string);
   try {
-    const where: any = { merchantId };
-    if (status) where.status = status;
+    let whereClause = `"merchantId" = $1`;
+    const params: any[] = [merchantId];
+    if (status) { params.push(status); whereClause += ` AND status = $${params.length}`; }
 
-    const [retries, total] = await Promise.all([
-      prisma.crossGatewayRetry.findMany({
-        where,
-        include: {
-          attempts: { orderBy: { attemptNum: 'asc' } },
-        },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: parseInt(limit as string),
-      }),
-      prisma.crossGatewayRetry.count({ where }),
-    ]);
+    const retries: any[] = await prisma.$queryRawUnsafe(
+      `SELECT * FROM cross_gateway_retries WHERE ${whereClause} ORDER BY "createdAt" DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+      ...params, take, skip
+    );
+
+    const countRows: any[] = await prisma.$queryRawUnsafe(
+      `SELECT COUNT(*) as total FROM cross_gateway_retries WHERE ${whereClause}`, ...params
+    );
+    const total = Number(countRows[0].total);
+
+    const retriesWithAttempts = await Promise.all(
+      retries.map(async (r: any) => {
+        const attempts: any[] = await prisma.$queryRawUnsafe(
+          `SELECT * FROM cross_gateway_retry_attempts WHERE "retryId" = $1 ORDER BY "attemptNum" ASC`, r.id
+        );
+        return { ...r, attempts };
+      })
+    );
 
     res.json({
       success: true,
       data: {
-        retries,
-        pagination: { page: parseInt(page as string), limit: parseInt(limit as string), total, pages: Math.ceil(total / parseInt(limit as string)) },
+        retries: retriesWithAttempts,
+        pagination: { page: parseInt(page as string), limit: take, total, pages: Math.ceil(total / take) },
       },
     });
     return;
@@ -174,15 +190,17 @@ export const getRetry = async (req: AuthenticatedRequest, res: Response): Promis
   const merchantId = req.merchant.id;
   const { retryId } = req.params;
   try {
-    const retry = await prisma.crossGatewayRetry.findFirst({
-      where: { id: retryId, merchantId },
-      include: { attempts: { orderBy: { attemptNum: 'asc' } } },
-    });
-    if (!retry) {
+    const rows: any[] = await prisma.$queryRawUnsafe(
+      `SELECT * FROM cross_gateway_retries WHERE id = $1 AND "merchantId" = $2`, retryId, merchantId
+    );
+    if (!rows.length) {
       res.status(404).json({ success: false, error: 'Retry session not found' });
       return;
     }
-    res.json({ success: true, data: { retry } });
+    const attempts: any[] = await prisma.$queryRawUnsafe(
+      `SELECT * FROM cross_gateway_retry_attempts WHERE "retryId" = $1 ORDER BY "attemptNum" ASC`, retryId
+    );
+    res.json({ success: true, data: { retry: { ...rows[0], attempts } } });
     return;
   } catch (err) {
     res.status(500).json({ success: false, error: 'Failed to fetch retry' });
@@ -195,20 +213,25 @@ export const cancelRetry = async (req: AuthenticatedRequest, res: Response): Pro
   const merchantId = req.merchant.id;
   const { retryId } = req.params;
   try {
-    const retry = await prisma.crossGatewayRetry.findFirst({ where: { id: retryId, merchantId } });
-    if (!retry) {
+    const rows: any[] = await prisma.$queryRawUnsafe(
+      `SELECT * FROM cross_gateway_retries WHERE id = $1 AND "merchantId" = $2`, retryId, merchantId
+    );
+    if (!rows.length) {
       res.status(404).json({ success: false, error: 'Retry session not found' });
       return;
     }
-    if (retry.status !== 'PENDING') {
-      res.status(400).json({ success: false, error: `Cannot cancel a ${retry.status} retry` });
+    if (rows[0].status !== 'PENDING') {
+      res.status(400).json({ success: false, error: `Cannot cancel a ${rows[0].status} retry` });
       return;
     }
-    const updated = await prisma.crossGatewayRetry.update({
-      where: { id: retryId },
-      data: { status: 'CANCELLED' },
-    });
-    res.json({ success: true, data: { retry: updated } });
+    await prisma.$executeRawUnsafe(
+      `UPDATE cross_gateway_retries SET status='CANCELLED', "updatedAt"=$1 WHERE id=$2`,
+      new Date().toISOString(), retryId
+    );
+    const updated: any[] = await prisma.$queryRawUnsafe(
+      `SELECT * FROM cross_gateway_retries WHERE id = $1`, retryId
+    );
+    res.json({ success: true, data: { retry: updated[0] } });
     return;
   } catch (err) {
     res.status(500).json({ success: false, error: 'Failed to cancel retry' });
@@ -220,34 +243,35 @@ export const cancelRetry = async (req: AuthenticatedRequest, res: Response): Pro
 export const getStats = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const merchantId = req.merchant.id;
   const days = parseInt(req.query.days as string) || 30;
-  const since = new Date(Date.now() - days * 86400000);
+  const since = new Date(Date.now() - days * 86400000).toISOString();
   try {
-    const retries = await prisma.crossGatewayRetry.findMany({
-      where: { merchantId, createdAt: { gte: since } },
-      include: { attempts: true },
-    });
+    const retries: any[] = await prisma.$queryRawUnsafe(
+      `SELECT * FROM cross_gateway_retries WHERE "merchantId" = $1 AND "createdAt" >= $2`, merchantId, since
+    );
 
     const total = retries.length;
-    const succeeded = retries.filter(r => r.status === 'SUCCEEDED').length;
-    const exhausted = retries.filter(r => r.status === 'EXHAUSTED').length;
-    const pending = retries.filter(r => r.status === 'PENDING').length;
-    const cancelled = retries.filter(r => r.status === 'CANCELLED').length;
+    const succeeded = retries.filter((r: any) => r.status === 'SUCCEEDED').length;
+    const exhausted = retries.filter((r: any) => r.status === 'EXHAUSTED').length;
+    const pending   = retries.filter((r: any) => r.status === 'PENDING').length;
+    const cancelled = retries.filter((r: any) => r.status === 'CANCELLED').length;
     const recoveryRate = total > 0 ? Math.round((succeeded / total) * 100) : 0;
-
-    const avgAttempts = total > 0
-      ? Math.round((retries.reduce((sum, r) => sum + r.attemptCount, 0) / total) * 10) / 10
+    const avgAttempts  = total > 0
+      ? Math.round((retries.reduce((sum: number, r: any) => sum + Number(r.attemptCount), 0) / total) * 10) / 10
       : 0;
 
-    // Gateway success breakdown
+    const retryIds = retries.map((r: any) => r.id);
+    let allAttempts: any[] = [];
+    if (retryIds.length) {
+      allAttempts = await prisma.$queryRawUnsafe(
+        `SELECT * FROM cross_gateway_retry_attempts WHERE "retryId" = ANY($1::text[])`, retryIds
+      );
+    }
+
     const gatewayBreakdown: Record<string, { name: string; attempts: number; successes: number }> = {};
-    retries.forEach(r => {
-      r.attempts.forEach(a => {
-        if (!gatewayBreakdown[a.gatewayId]) {
-          gatewayBreakdown[a.gatewayId] = { name: a.gatewayName, attempts: 0, successes: 0 };
-        }
-        gatewayBreakdown[a.gatewayId].attempts++;
-        if (a.status === 'SUCCESS') gatewayBreakdown[a.gatewayId].successes++;
-      });
+    allAttempts.forEach((a: any) => {
+      if (!gatewayBreakdown[a.gatewayId]) gatewayBreakdown[a.gatewayId] = { name: a.gatewayName, attempts: 0, successes: 0 };
+      gatewayBreakdown[a.gatewayId].attempts++;
+      if (a.status === 'SUCCESS') gatewayBreakdown[a.gatewayId].successes++;
     });
 
     const gatewayStats = Object.entries(gatewayBreakdown).map(([id, data]) => ({
@@ -260,17 +284,7 @@ export const getStats = async (req: AuthenticatedRequest, res: Response): Promis
 
     res.json({
       success: true,
-      data: {
-        period: `${days}d`,
-        total,
-        succeeded,
-        exhausted,
-        pending,
-        cancelled,
-        recoveryRate,
-        avgAttempts,
-        gatewayStats,
-      },
+      data: { period: `${days}d`, total, succeeded, exhausted, pending, cancelled, recoveryRate, avgAttempts, gatewayStats },
     });
     return;
   } catch (err) {
