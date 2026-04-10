@@ -36,6 +36,7 @@ import paymentMethodsRoutes from "./routes/paymentMethods";
 import retryRoutes from "./routes/retry";
 import reconciliationRoutes from "./routes/reconciliation";
 import realtimeRoutes from "./routes/realtime";
+import customersRoutes from "./routes/customers";
 
 const app = express();
 
@@ -94,6 +95,7 @@ app.use("/api/payment-methods",   paymentMethodsRoutes);
 app.use("/api/retry",             retryRoutes);
 app.use("/api/reconciliation",    reconciliationRoutes);
 app.use("/api/realtime",          realtimeRoutes);
+app.use("/api/customers",         customersRoutes);
 
 // ─── 404 & Error Handlers ─────────────────────────────────────
 
