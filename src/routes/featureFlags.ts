@@ -1,7 +1,4 @@
-// ─────────────────────────────────────────────────────────────
-// Zyrix Backend — Feature Flags Routes
-// ─────────────────────────────────────────────────────────────
-
+// src/routes/featureFlags.ts
 import { Router } from "express";
 import { authenticateToken } from "../middleware/auth";
 import {
@@ -13,12 +10,11 @@ import {
 
 const router = Router();
 
-// All routes require auth
-router.use(authenticateToken);
+router.use(authenticateToken as any);
 
-router.get("/",         listFlags);       // GET  /api/feature-flags
-router.get("/map",      getFlagsMap);     // GET  /api/feature-flags/map  ← app uses this on startup
-router.patch("/bulk",   bulkUpdateFlags); // PATCH /api/feature-flags/bulk
-router.patch("/:key",   updateFlag);      // PATCH /api/feature-flags/:key
+router.get("/",       listFlags       as any);
+router.get("/map",    getFlagsMap     as any);
+router.patch("/bulk", bulkUpdateFlags as any);
+router.patch("/:key", updateFlag      as any);
 
 export default router;
