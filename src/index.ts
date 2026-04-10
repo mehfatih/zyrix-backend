@@ -113,4 +113,4 @@ async function bootstrap(): Promise<void> {
 process.on("SIGINT", async () => { console.log("\n⚠️  Shutting down gracefully..."); await prisma.$disconnect(); process.exit(0); });
 process.on("SIGTERM", async () => { await prisma.$disconnect(); process.exit(0); });
 
-bootstrap();
+bootstrap(); 
