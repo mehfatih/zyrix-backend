@@ -1,17 +1,9 @@
 import { Router } from "express";
-import { authenticate } from "../middleware/auth";
-import {
-  getLiveMetrics,
-  getDrillDown,
-  recordMetric,
-  getSummary,
-} from "../controllers/realtimeDashboardController";
-
+import { authenticateToken } from "../middleware/auth";
+import { getLiveMetrics, getDrillDown, recordMetric, getSummary } from "../controllers/realtimeDashboardController";
 const router = Router();
-
-router.get( "/live",       authenticate, getLiveMetrics);
-router.get( "/drill-down", authenticate, getDrillDown);
-router.get( "/summary",    authenticate, getSummary);
-router.post("/record",     authenticate, recordMetric);
-
+router.get( "/live",       authenticateToken, getLiveMetrics);
+router.get( "/drill-down", authenticateToken, getDrillDown);
+router.get( "/summary",    authenticateToken, getSummary);
+router.post("/record",     authenticateToken, recordMetric);
 export default router;
