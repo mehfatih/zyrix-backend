@@ -1,0 +1,10 @@
+import { Router } from "express";
+import { authenticateToken } from "../middleware/auth";
+import { getRevenueForecast, getCustomerForecast, getTransactionForecast, getScenarios } from "../controllers/predictiveAnalyticsController";
+const router = Router();
+router.use(authenticateToken as any);
+router.get("/revenue-forecast",     getRevenueForecast     as any);
+router.get("/customer-forecast",    getCustomerForecast    as any);
+router.get("/transaction-forecast", getTransactionForecast as any);
+router.get("/scenarios",            getScenarios           as any);
+export default router;
