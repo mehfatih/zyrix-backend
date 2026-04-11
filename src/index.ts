@@ -1,4 +1,3 @@
-// src/index.ts
 import express from "express";
 import helmet from "helmet";
 import { env } from "./config/env";
@@ -51,15 +50,19 @@ import commissionRoutes from "./routes/commission";
 import taxRoutes from "./routes/tax";
 import recoveryRoutes from "./routes/recovery";
 import financialReportsRoutes from "./routes/financialReports";
-// ── Layer 4: Analytics & Intelligence ──
 import realtimeDashboardRoutes from "./routes/realtimeDashboard";
 import conversionFunnelRoutes from "./routes/conversionFunnel";
 import successRateAnalysisRoutes from "./routes/successRateAnalysis";
 import revenueBreakdownRoutes from "./routes/revenueBreakdown";
 import customerCLVRoutes from "./routes/customerCLV";
+// ── Layer 4 Phase 2 ──
+import cohortAnalysisRoutes from "./routes/cohortAnalysis";
+import smartInsightsRoutes from "./routes/smartInsights";
+import predictiveAnalyticsRoutes from "./routes/predictiveAnalytics";
+import alertsEngineRoutes from "./routes/alertsEngine";
+import abTestingRoutes from "./routes/abTesting";
 
 const app = express();
-
 app.use(helmet());
 app.use(corsOptions);
 app.use(globalRateLimiter);
@@ -67,10 +70,7 @@ app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 
 app.get("/health", (_req, res) => {
-  res.status(200).json({
-    success: true,
-    data: { status: "ok", service: "zyrix-backend", version: "1.0.0", environment: env.nodeEnv, timestamp: new Date().toISOString() },
-  });
+  res.status(200).json({ success: true, data: { status: "ok", service: "zyrix-backend", version: "1.0.0", environment: env.nodeEnv, timestamp: new Date().toISOString() } });
 });
 
 app.use("/api/auth",                    authRoutes);
@@ -118,29 +118,27 @@ app.use("/api/commission",              commissionRoutes);
 app.use("/api/tax",                     taxRoutes);
 app.use("/api/recovery",                recoveryRoutes);
 app.use("/api/financial-reports",       financialReportsRoutes);
-// ── Layer 4: Analytics & Intelligence ──
 app.use("/api/realtime-dashboard",      realtimeDashboardRoutes);
 app.use("/api/conversion-funnel",       conversionFunnelRoutes);
 app.use("/api/success-rate",            successRateAnalysisRoutes);
 app.use("/api/revenue-breakdown",       revenueBreakdownRoutes);
 app.use("/api/customer-clv",            customerCLVRoutes);
+// ── Layer 4 Phase 2 ──
+app.use("/api/cohort-analysis",         cohortAnalysisRoutes);
+app.use("/api/smart-insights",          smartInsightsRoutes);
+app.use("/api/predictive-analytics",    predictiveAnalyticsRoutes);
+app.use("/api/alerts-engine",           alertsEngineRoutes);
+app.use("/api/ab-testing",              abTestingRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
 
 async function bootstrap(): Promise<void> {
-  app.listen(env.port, () => {
-    console.log("\n🚀 Zyrix Backend running on port " + env.port);
-  });
-  try {
-    await prisma.$connect();
-    console.log("✅ Database connected");
-  } catch (err) {
-    console.error("❌ Database connection failed:", err);
-  }
+  app.listen(env.port, () => { console.log("\n🚀 Zyrix Backend running on port " + env.port); });
+  try { await prisma.$connect(); console.log("✅ Database connected"); }
+  catch (err) { console.error("❌ Database connection failed:", err); }
 }
 
-process.on("SIGINT",  async () => { console.log("\n⚠️  Shutting down gracefully..."); await prisma.$disconnect(); process.exit(0); });
+process.on("SIGINT",  async () => { await prisma.$disconnect(); process.exit(0); });
 process.on("SIGTERM", async () => { await prisma.$disconnect(); process.exit(0); });
-
 bootstrap();
