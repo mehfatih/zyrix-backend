@@ -4,8 +4,55 @@
 // ─────────────────────────────────────────────────────────────
 import { Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "../types";
-import { prisma } from "../lib/prisma";
+import { prisma } from "../config/database";
 import { parsePagination, buildMeta } from "../utils/pagination";
+
+// ─── Types ───────────────────────────────────────────────────
+
+interface ChurnRow {
+  subscription_id: string;
+  churn_score: number;
+  risk_level: string;
+  factors: unknown;
+}
+
+interface RetryRow {
+  id: string;
+  attempt_number: number;
+  status: string;
+  scheduled_at: string;
+  executed_at: string | null;
+  error_message: string | null;
+}
+
+interface RetryScheduleRow {
+  attempt_number: number;
+  status: string;
+  scheduled_at: string;
+}
+
+interface DunningRow {
+  id: string;
+  step: number;
+  channel: string;
+  message: string;
+  sent_at: string;
+  opened: boolean;
+}
+
+interface ChurnScoreRow {
+  churn_score: number;
+  risk_level: string;
+  factors: unknown;
+  calculated_at: string;
+}
+
+interface ChurnOverviewRow {
+  subscription_id: string;
+  churn_score: number;
+  risk_level: string;
+  factors: unknown;
+}
 
 // ─── Helpers ─────────────────────────────────────────────────
 
@@ -19,25 +66,20 @@ function calcChurnScore(sub: {
   let score = 0;
   const factors: string[] = [];
 
-  // فشل الدفع الحالي
   if (sub.status === "PAST_DUE") {
     score += 40;
     factors.push("payment_failed");
   }
 
-  // قرب انتهاء الفترة بدون تجديد
   const daysToEnd = Math.max(
     0,
-    Math.floor(
-      (new Date(sub.currentPeriodEnd).getTime() - Date.now()) / 86400000
-    )
+    Math.floor((new Date(sub.currentPeriodEnd).getTime() - Date.now()) / 86400000)
   );
   if (daysToEnd <= 3) {
     score += 20;
     factors.push("expiring_soon");
   }
 
-  // محاولات retry فاشلة
   const retries = sub.failedRetries ?? 0;
   if (retries >= 2) {
     score += 25;
@@ -47,7 +89,6 @@ function calcChurnScore(sub: {
     factors.push("one_retry_failure");
   }
 
-  // dunning متقدم
   const step = sub.dunningStep ?? 0;
   if (step >= 3) {
     score += 15;
@@ -57,7 +98,6 @@ function calcChurnScore(sub: {
     factors.push("second_dunning_notice");
   }
 
-  // عمر الاشتراك (جديد = أعلى خطر)
   const ageDays = Math.floor(
     (Date.now() - new Date(sub.createdAt).getTime()) / 86400000
   );
@@ -75,7 +115,6 @@ function calcChurnScore(sub: {
   return { score, level, factors };
 }
 
-// حساب تواريخ Smart Retry (1 يوم، 3 أيام، 7 أيام)
 function buildRetrySchedule(failedAt: Date): Date[] {
   return [1, 3, 7].map((days) => {
     const d = new Date(failedAt);
@@ -106,18 +145,10 @@ export const subscriptionsController = {
         prisma.subscription.count({ where: { merchantId } }),
       ]);
 
-      // جلب churn scores مع كل اشتراك
       const subIds = rows.map((r) => r.id);
-      const churnRows =
+      const churnRows: ChurnRow[] =
         subIds.length > 0
-          ? await prisma.$queryRawUnsafe<
-              {
-                subscription_id: string;
-                churn_score: number;
-                risk_level: string;
-                factors: unknown;
-              }[]
-            >(
+          ? await prisma.$queryRawUnsafe<ChurnRow[]>(
               `SELECT subscription_id, churn_score, risk_level, factors
                FROM subscription_churn_scores
                WHERE subscription_id = ANY($1::text[])`,
@@ -126,7 +157,7 @@ export const subscriptionsController = {
           : [];
 
       const churnMap = new Map(
-        churnRows.map((c) => [c.subscription_id, c])
+        churnRows.map((c: ChurnRow) => [c.subscription_id, c])
       );
 
       const data = rows.map((s) => {
@@ -135,8 +166,8 @@ export const subscriptionsController = {
           ...s,
           amount: Number(s.amount),
           churnScore: ch ? Number(ch.churn_score) : 0,
-          churnRisk: ch?.risk_level ?? "LOW",
-          churnFactors: ch?.factors ?? [],
+          churnRisk: ch ? ch.risk_level : "LOW",
+          churnFactors: ch ? ch.factors : [],
         };
       });
 
@@ -154,36 +185,16 @@ export const subscriptionsController = {
   async create(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const {
-        planName,
-        amount,
-        currency,
-        interval,
-        currentPeriodStart,
-        currentPeriodEnd,
+        planName, amount, currency, interval, currentPeriodStart, currentPeriodEnd,
       } = req.body as {
-        planName: string;
-        amount: number;
-        currency: string;
-        interval: string;
-        currentPeriodStart: string;
-        currentPeriodEnd: string;
+        planName: string; amount: number; currency: string;
+        interval: string; currentPeriodStart: string; currentPeriodEnd: string;
       };
 
-      if (
-        !planName ||
-        amount === undefined ||
-        !currency ||
-        !interval ||
-        !currentPeriodStart ||
-        !currentPeriodEnd
-      ) {
+      if (!planName || amount === undefined || !currency || !interval || !currentPeriodStart || !currentPeriodEnd) {
         res.status(400).json({
           success: false,
-          error: {
-            code: "VALIDATION_ERROR",
-            message:
-              "planName, amount, currency, interval, currentPeriodStart, currentPeriodEnd are required",
-          },
+          error: { code: "VALIDATION_ERROR", message: "planName, amount, currency, interval, currentPeriodStart, currentPeriodEnd are required" },
         });
         return;
       }
@@ -192,10 +203,7 @@ export const subscriptionsController = {
       if (!["MONTHLY", "YEARLY"].includes(intervalUp)) {
         res.status(400).json({
           success: false,
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "interval must be MONTHLY or YEARLY",
-          },
+          error: { code: "VALIDATION_ERROR", message: "interval must be MONTHLY or YEARLY" },
         });
         return;
       }
@@ -213,7 +221,6 @@ export const subscriptionsController = {
         },
       });
 
-      // حساب churn score أولي
       const { score, level, factors } = calcChurnScore({
         status: sub.status,
         currentPeriodEnd: sub.currentPeriodEnd,
@@ -227,11 +234,7 @@ export const subscriptionsController = {
          VALUES ($1, $2, $3, $4, $5::jsonb)
          ON CONFLICT (subscription_id) DO UPDATE
            SET churn_score = $3, risk_level = $4, factors = $5::jsonb, calculated_at = NOW()`,
-        sub.id,
-        req.merchant.id,
-        score,
-        level,
-        JSON.stringify(factors)
+        sub.id, req.merchant.id, score, level, JSON.stringify(factors)
       );
 
       res.status(201).json({
@@ -250,18 +253,13 @@ export const subscriptionsController = {
         where: { id: req.params.id, merchantId: req.merchant.id },
       });
       if (!existing) {
-        res.status(404).json({
-          success: false,
-          error: { code: "NOT_FOUND", message: "Subscription not found" },
-        });
+        res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Subscription not found" } });
         return;
       }
-
       const updated = await prisma.subscription.update({
         where: { id: req.params.id },
         data: req.body,
       });
-
       res.json({ success: true, data: { ...updated, amount: Number(updated.amount) } });
     } catch (err) {
       next(err);
@@ -275,28 +273,20 @@ export const subscriptionsController = {
         where: { id: req.params.id, merchantId: req.merchant.id },
       });
       if (!existing) {
-        res.status(404).json({
-          success: false,
-          error: { code: "NOT_FOUND", message: "Subscription not found" },
-        });
+        res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Subscription not found" } });
         return;
       }
-
       const updated = await prisma.subscription.update({
         where: { id: req.params.id },
         data: { status: "CANCELLED" },
       });
-
-      // تحديث churn score عند الإلغاء الفعلي
       await prisma.$executeRawUnsafe(
         `INSERT INTO subscription_churn_scores (subscription_id, merchant_id, churn_score, risk_level, factors)
          VALUES ($1, $2, 100, 'CRITICAL', '["cancelled"]'::jsonb)
          ON CONFLICT (subscription_id) DO UPDATE
            SET churn_score = 100, risk_level = 'CRITICAL', factors = '["cancelled"]'::jsonb, calculated_at = NOW()`,
-        req.params.id,
-        req.merchant.id
+        req.params.id, req.merchant.id
       );
-
       res.json({ success: true, data: { ...updated, amount: Number(updated.amount) } });
     } catch (err) {
       next(err);
@@ -304,52 +294,34 @@ export const subscriptionsController = {
   },
 
   // ─── Smart Retry (Elite) ─────────────────────────
-  async triggerSmartRetry(
-    req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
-  ) {
+  async triggerSmartRetry(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const sub = await prisma.subscription.findFirst({
         where: { id: req.params.id, merchantId: req.merchant.id },
       });
       if (!sub) {
-        res.status(404).json({
-          success: false,
-          error: { code: "NOT_FOUND", message: "Subscription not found" },
-        });
+        res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Subscription not found" } });
         return;
       }
 
-      // إلغاء أي retry قديم pending
       await prisma.$executeRawUnsafe(
-        `UPDATE subscription_retry_attempts
-         SET status = 'EXHAUSTED'
+        `UPDATE subscription_retry_attempts SET status = 'EXHAUSTED'
          WHERE subscription_id = $1 AND status = 'PENDING'`,
         sub.id
       );
 
-      // إنشاء جدول retry جديد
       const schedule = buildRetrySchedule(new Date());
       for (let i = 0; i < schedule.length; i++) {
         await prisma.$executeRawUnsafe(
           `INSERT INTO subscription_retry_attempts
              (subscription_id, merchant_id, attempt_number, status, scheduled_at)
            VALUES ($1, $2, $3, 'PENDING', $4)`,
-          sub.id,
-          req.merchant.id,
-          i + 1,
-          schedule[i].toISOString()
+          sub.id, req.merchant.id, i + 1, schedule[i].toISOString()
         );
       }
 
-      // تحديث status للـ PAST_DUE
-      await prisma.subscription.update({
-        where: { id: sub.id },
-        data: { status: "PAST_DUE" },
-      });
+      await prisma.subscription.update({ where: { id: sub.id }, data: { status: "PAST_DUE" } });
 
-      // تحديث churn score
       const { score, level, factors } = calcChurnScore({
         status: "PAST_DUE",
         currentPeriodEnd: sub.currentPeriodEnd,
@@ -357,21 +329,16 @@ export const subscriptionsController = {
         failedRetries: 1,
         dunningStep: 0,
       });
+
       await prisma.$executeRawUnsafe(
         `INSERT INTO subscription_churn_scores (subscription_id, merchant_id, churn_score, risk_level, factors)
          VALUES ($1, $2, $3, $4, $5::jsonb)
          ON CONFLICT (subscription_id) DO UPDATE
            SET churn_score = $3, risk_level = $4, factors = $5::jsonb, calculated_at = NOW()`,
-        sub.id,
-        req.merchant.id,
-        score,
-        level,
-        JSON.stringify(factors)
+        sub.id, req.merchant.id, score, level, JSON.stringify(factors)
       );
 
-      const retries = await prisma.$queryRawUnsafe<
-        { attempt_number: number; status: string; scheduled_at: string }[]
-      >(
+      const retries = await prisma.$queryRawUnsafe<RetryScheduleRow[]>(
         `SELECT attempt_number, status, scheduled_at
          FROM subscription_retry_attempts
          WHERE subscription_id = $1
@@ -383,7 +350,7 @@ export const subscriptionsController = {
         success: true,
         data: {
           subscriptionId: sub.id,
-          retrySchedule: retries.map((r) => ({
+          retrySchedule: retries.map((r: RetryScheduleRow) => ({
             attempt: Number(r.attempt_number),
             status: r.status,
             scheduledAt: r.scheduled_at,
@@ -398,43 +365,25 @@ export const subscriptionsController = {
   },
 
   // ─── Get Retry Status (Elite) ────────────────────
-  async getRetryStatus(
-    req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
-  ) {
+  async getRetryStatus(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const sub = await prisma.subscription.findFirst({
         where: { id: req.params.id, merchantId: req.merchant.id },
       });
       if (!sub) {
-        res.status(404).json({
-          success: false,
-          error: { code: "NOT_FOUND", message: "Subscription not found" },
-        });
+        res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Subscription not found" } });
         return;
       }
-
-      const retries = await prisma.$queryRawUnsafe<
-        {
-          id: string;
-          attempt_number: number;
-          status: string;
-          scheduled_at: string;
-          executed_at: string | null;
-          error_message: string | null;
-        }[]
-      >(
+      const retries = await prisma.$queryRawUnsafe<RetryRow[]>(
         `SELECT id, attempt_number, status, scheduled_at, executed_at, error_message
          FROM subscription_retry_attempts
          WHERE subscription_id = $1
          ORDER BY attempt_number`,
         sub.id
       );
-
       res.json({
         success: true,
-        data: retries.map((r) => ({
+        data: retries.map((r: RetryRow) => ({
           id: r.id,
           attempt: Number(r.attempt_number),
           status: r.status,
@@ -449,48 +398,32 @@ export const subscriptionsController = {
   },
 
   // ─── Send Dunning Notice (Elite) ─────────────────
-  async sendDunningNotice(
-    req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
-  ) {
+  async sendDunningNotice(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const sub = await prisma.subscription.findFirst({
         where: { id: req.params.id, merchantId: req.merchant.id },
       });
       if (!sub) {
-        res.status(404).json({
-          success: false,
-          error: { code: "NOT_FOUND", message: "Subscription not found" },
-        });
+        res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Subscription not found" } });
         return;
       }
 
-      const { step = 1, channel = "PUSH" } = req.body as {
-        step?: number;
-        channel?: string;
-      };
+      const { step = 1, channel = "PUSH" } = req.body as { step?: number; channel?: string };
 
       const messages: Record<number, string> = {
         1: `تذكير: دفعة اشتراك "${sub.planName}" مستحقة`,
         2: `تحذير: اشتراكك "${sub.planName}" سيتوقف خلال 48 ساعة`,
         3: `إشعار أخير: سيتم إلغاء "${sub.planName}" اليوم`,
       };
-
       const message = messages[step] ?? messages[1];
 
       await prisma.$executeRawUnsafe(
         `INSERT INTO subscription_dunning_logs
            (subscription_id, merchant_id, step, channel, message)
          VALUES ($1, $2, $3, $4, $5)`,
-        sub.id,
-        req.merchant.id,
-        step,
-        channel,
-        message
+        sub.id, req.merchant.id, step, channel, message
       );
 
-      // إذا خطوة 3 → تحديث churn
       if (step >= 3) {
         const { score, level, factors } = calcChurnScore({
           status: sub.status,
@@ -504,67 +437,36 @@ export const subscriptionsController = {
            VALUES ($1, $2, $3, $4, $5::jsonb)
            ON CONFLICT (subscription_id) DO UPDATE
              SET churn_score = $3, risk_level = $4, factors = $5::jsonb, calculated_at = NOW()`,
-          sub.id,
-          req.merchant.id,
-          score,
-          level,
-          JSON.stringify(factors)
+          sub.id, req.merchant.id, score, level, JSON.stringify(factors)
         );
       }
 
-      res.json({
-        success: true,
-        data: {
-          subscriptionId: sub.id,
-          step,
-          channel,
-          message,
-          sentAt: new Date().toISOString(),
-        },
-      });
+      res.json({ success: true, data: { subscriptionId: sub.id, step, channel, message, sentAt: new Date().toISOString() } });
     } catch (err) {
       next(err);
     }
   },
 
   // ─── Get Dunning History (Elite) ─────────────────
-  async getDunningHistory(
-    req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
-  ) {
+  async getDunningHistory(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const sub = await prisma.subscription.findFirst({
         where: { id: req.params.id, merchantId: req.merchant.id },
       });
       if (!sub) {
-        res.status(404).json({
-          success: false,
-          error: { code: "NOT_FOUND", message: "Subscription not found" },
-        });
+        res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Subscription not found" } });
         return;
       }
-
-      const logs = await prisma.$queryRawUnsafe<
-        {
-          id: string;
-          step: number;
-          channel: string;
-          message: string;
-          sent_at: string;
-          opened: boolean;
-        }[]
-      >(
+      const logs = await prisma.$queryRawUnsafe<DunningRow[]>(
         `SELECT id, step, channel, message, sent_at, opened
          FROM subscription_dunning_logs
          WHERE subscription_id = $1
          ORDER BY sent_at DESC`,
         sub.id
       );
-
       res.json({
         success: true,
-        data: logs.map((l) => ({
+        data: logs.map((l: DunningRow) => ({
           id: l.id,
           step: Number(l.step),
           channel: l.channel,
@@ -579,31 +481,17 @@ export const subscriptionsController = {
   },
 
   // ─── Get Churn Score (Elite) ─────────────────────
-  async getChurnScore(
-    req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
-  ) {
+  async getChurnScore(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const sub = await prisma.subscription.findFirst({
         where: { id: req.params.id, merchantId: req.merchant.id },
       });
       if (!sub) {
-        res.status(404).json({
-          success: false,
-          error: { code: "NOT_FOUND", message: "Subscription not found" },
-        });
+        res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Subscription not found" } });
         return;
       }
 
-      const rows = await prisma.$queryRawUnsafe<
-        {
-          churn_score: number;
-          risk_level: string;
-          factors: unknown;
-          calculated_at: string;
-        }[]
-      >(
+      const rows = await prisma.$queryRawUnsafe<ChurnScoreRow[]>(
         `SELECT churn_score, risk_level, factors, calculated_at
          FROM subscription_churn_scores
          WHERE subscription_id = $1`,
@@ -612,15 +500,9 @@ export const subscriptionsController = {
 
       let churnData;
       if (rows.length > 0) {
-        const r = rows[0];
-        churnData = {
-          score: Number(r.churn_score),
-          riskLevel: r.risk_level,
-          factors: r.factors,
-          calculatedAt: r.calculated_at,
-        };
+        const r: ChurnScoreRow = rows[0];
+        churnData = { score: Number(r.churn_score), riskLevel: r.risk_level, factors: r.factors, calculatedAt: r.calculated_at };
       } else {
-        // احسب لأول مرة
         const { score, level, factors } = calcChurnScore({
           status: sub.status,
           currentPeriodEnd: sub.currentPeriodEnd,
@@ -629,18 +511,9 @@ export const subscriptionsController = {
         await prisma.$executeRawUnsafe(
           `INSERT INTO subscription_churn_scores (subscription_id, merchant_id, churn_score, risk_level, factors)
            VALUES ($1, $2, $3, $4, $5::jsonb)`,
-          sub.id,
-          req.merchant.id,
-          score,
-          level,
-          JSON.stringify(factors)
+          sub.id, req.merchant.id, score, level, JSON.stringify(factors)
         );
-        churnData = {
-          score,
-          riskLevel: level,
-          factors,
-          calculatedAt: new Date().toISOString(),
-        };
+        churnData = { score, riskLevel: level, factors, calculatedAt: new Date().toISOString() };
       }
 
       res.json({ success: true, data: churnData });
@@ -649,23 +522,12 @@ export const subscriptionsController = {
     }
   },
 
-  // ─── Churn Overview — كل الاشتراكات عالية الخطر (Elite) ─
-  async getChurnOverview(
-    req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
-  ) {
+  // ─── Churn Overview (Elite) ──────────────────────
+  async getChurnOverview(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const merchantId = req.merchant.id;
 
-      const rows = await prisma.$queryRawUnsafe<
-        {
-          subscription_id: string;
-          churn_score: number;
-          risk_level: string;
-          factors: unknown;
-        }[]
-      >(
+      const rows = await prisma.$queryRawUnsafe<ChurnOverviewRow[]>(
         `SELECT cs.subscription_id, cs.churn_score, cs.risk_level, cs.factors
          FROM subscription_churn_scores cs
          WHERE cs.merchant_id = $1
@@ -674,16 +536,13 @@ export const subscriptionsController = {
       );
 
       const summary = {
-        critical: rows.filter((r) => r.risk_level === "CRITICAL").length,
-        high: rows.filter((r) => r.risk_level === "HIGH").length,
-        medium: rows.filter((r) => r.risk_level === "MEDIUM").length,
-        low: rows.filter((r) => r.risk_level === "LOW").length,
-        avgScore:
-          rows.length > 0
-            ? Math.round(
-                rows.reduce((s, r) => s + Number(r.churn_score), 0) / rows.length
-              )
-            : 0,
+        critical: rows.filter((r: ChurnOverviewRow) => r.risk_level === "CRITICAL").length,
+        high:     rows.filter((r: ChurnOverviewRow) => r.risk_level === "HIGH").length,
+        medium:   rows.filter((r: ChurnOverviewRow) => r.risk_level === "MEDIUM").length,
+        low:      rows.filter((r: ChurnOverviewRow) => r.risk_level === "LOW").length,
+        avgScore: rows.length > 0
+          ? Math.round(rows.reduce((s: number, r: ChurnOverviewRow) => s + Number(r.churn_score), 0) / rows.length)
+          : 0,
       };
 
       res.json({
@@ -691,8 +550,8 @@ export const subscriptionsController = {
         data: {
           summary,
           atRisk: rows
-            .filter((r) => r.risk_level !== "LOW")
-            .map((r) => ({
+            .filter((r: ChurnOverviewRow) => r.risk_level !== "LOW")
+            .map((r: ChurnOverviewRow) => ({
               subscriptionId: r.subscription_id,
               churnScore: Number(r.churn_score),
               riskLevel: r.risk_level,
