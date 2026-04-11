@@ -460,21 +460,21 @@ export const revenueGoalsController = {
           startDate: new Date(goal.startDate),
           endDate: new Date(goal.endDate),
         });
-        return res.json({ success: true, data: fc });
+        res.json({ success: true, data: fc });
+      } else {
+        const r: ForecastRow = rows[0];
+        res.json({
+          success: true,
+          data: {
+            dailyRate: Number(r.daily_rate),
+            projectedTotal: Number(r.projected_total),
+            willAchieve: r.will_achieve,
+            gapAmount: Number(r.gap_amount),
+            confidence: Number(r.confidence),
+            calculatedAt: r.calculated_at,
+          },
+        });
       }
-
-      const r: ForecastRow = rows[0];
-      res.json({
-        success: true,
-        data: {
-          dailyRate: Number(r.daily_rate),
-          projectedTotal: Number(r.projected_total),
-          willAchieve: r.will_achieve,
-          gapAmount: Number(r.gap_amount),
-          confidence: Number(r.confidence),
-          calculatedAt: r.calculated_at,
-        },
-      });
     } catch (err) {
       next(err);
     }
