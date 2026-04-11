@@ -51,6 +51,12 @@ import commissionRoutes from "./routes/commission";
 import taxRoutes from "./routes/tax";
 import recoveryRoutes from "./routes/recovery";
 import financialReportsRoutes from "./routes/financialReports";
+// ── Layer 4: Analytics & Intelligence ──
+import realtimeDashboardRoutes from "./routes/realtimeDashboard";
+import conversionFunnelRoutes from "./routes/conversionFunnel";
+import successRateAnalysisRoutes from "./routes/successRateAnalysis";
+import revenueBreakdownRoutes from "./routes/revenueBreakdown";
+import customerCLVRoutes from "./routes/customerCLV";
 
 const app = express();
 
@@ -112,6 +118,12 @@ app.use("/api/commission",              commissionRoutes);
 app.use("/api/tax",                     taxRoutes);
 app.use("/api/recovery",                recoveryRoutes);
 app.use("/api/financial-reports",       financialReportsRoutes);
+// ── Layer 4: Analytics & Intelligence ──
+app.use("/api/realtime-dashboard",      realtimeDashboardRoutes);
+app.use("/api/conversion-funnel",       conversionFunnelRoutes);
+app.use("/api/success-rate",            successRateAnalysisRoutes);
+app.use("/api/revenue-breakdown",       revenueBreakdownRoutes);
+app.use("/api/customer-clv",            customerCLVRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
