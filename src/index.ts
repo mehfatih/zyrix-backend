@@ -65,12 +65,18 @@ import abTestingRoutes from "./routes/abTesting";
 import onboardingRoutes from "./routes/onboarding";
 import setupProgressRoutes from "./routes/setupProgress";
 import uxLayerRoutes from "./routes/uxLayer";
-// ── Layer 6 ──
+// ── Layer 6A ──
 import advancedNotificationsRoutes from "./routes/advancedNotifications";
 import paymentRemindersRoutes from "./routes/paymentReminders";
 import crmIntegrationRoutes from "./routes/crmIntegration";
 import marketingAutomationRoutes from "./routes/marketingAutomation";
 import affiliateSystemRoutes from "./routes/affiliateSystem";
+// ── Layer 6B ──
+import teamAccountsRoutes from "./routes/teamAccounts";
+import permissionsEngineRoutes from "./routes/permissionsEngine";
+import marketplaceSplitRoutes from "./routes/marketplaceSplit";
+import partnerDashboardRoutes from "./routes/partnerDashboard";
+import growthExperimentsRoutes from "./routes/growthExperiments";
 
 const app = express();
 app.use(helmet());
@@ -143,12 +149,18 @@ app.use("/api/ab-testing",              abTestingRoutes);
 app.use("/api/onboarding",              onboardingRoutes);
 app.use("/api/setup-progress",          setupProgressRoutes);
 app.use("/api/ux-layer",                uxLayerRoutes);
-// ── Layer 6 ──
+// ── Layer 6A ──
 app.use("/api/advanced-notifications",  advancedNotificationsRoutes);
 app.use("/api/payment-reminders",       paymentRemindersRoutes);
 app.use("/api/crm-integration",         crmIntegrationRoutes);
 app.use("/api/marketing-automation",    marketingAutomationRoutes);
 app.use("/api/affiliate-system",        affiliateSystemRoutes);
+// ── Layer 6B ──
+app.use("/api/team-accounts",           teamAccountsRoutes);
+app.use("/api/permissions",             permissionsEngineRoutes);
+app.use("/api/marketplace",             marketplaceSplitRoutes);
+app.use("/api/partners",                partnerDashboardRoutes);
+app.use("/api/growth-experiments",      growthExperimentsRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
