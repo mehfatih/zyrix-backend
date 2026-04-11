@@ -46,6 +46,11 @@ import growthRoutes from "./routes/growth";
 import tokenizationRoutes from "./routes/tokenization";
 import chargebackRoutes from "./routes/chargeback";
 import approvalOptimizationRoutes from "./routes/approval-optimization";
+import payoutSchedulingRoutes from "./routes/payoutScheduling";
+import commissionRoutes from "./routes/commission";
+import taxRoutes from "./routes/tax";
+import recoveryRoutes from "./routes/recovery";
+import financialReportsRoutes from "./routes/financialReports";
 
 const app = express();
 
@@ -102,6 +107,11 @@ app.use("/api/growth",                  growthRoutes);
 app.use("/api/tokenization",            tokenizationRoutes);
 app.use("/api/chargeback",              chargebackRoutes);
 app.use("/api/approval-optimization",   approvalOptimizationRoutes);
+app.use("/api/payout-scheduling",       payoutSchedulingRoutes);
+app.use("/api/commission",              commissionRoutes);
+app.use("/api/tax",                     taxRoutes);
+app.use("/api/recovery",                recoveryRoutes);
+app.use("/api/financial-reports",       financialReportsRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
@@ -118,7 +128,7 @@ async function bootstrap(): Promise<void> {
   }
 }
 
-process.on("SIGINT", async () => { console.log("\n⚠️  Shutting down gracefully..."); await prisma.$disconnect(); process.exit(0); });
+process.on("SIGINT",  async () => { console.log("\n⚠️  Shutting down gracefully..."); await prisma.$disconnect(); process.exit(0); });
 process.on("SIGTERM", async () => { await prisma.$disconnect(); process.exit(0); });
 
 bootstrap();
