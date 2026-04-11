@@ -1,21 +1,11 @@
 import { Router } from "express";
-import { authenticate } from "../middleware/auth";
-import {
-  getOverview,
-  getByMethod,
-  getByCountry,
-  getByCustomer,
-  getByChannel,
-  getTimeline,
-} from "../controllers/revenueBreakdownController";
-
+import { authenticateToken } from "../middleware/auth";
+import { getOverview, getByMethod, getByCountry, getByCustomer, getByChannel, getTimeline } from "../controllers/revenueBreakdownController";
 const router = Router();
-
-router.get("/overview",    authenticate, getOverview);
-router.get("/by-method",   authenticate, getByMethod);
-router.get("/by-country",  authenticate, getByCountry);
-router.get("/by-customer", authenticate, getByCustomer);
-router.get("/by-channel",  authenticate, getByChannel);
-router.get("/timeline",    authenticate, getTimeline);
-
+router.get("/overview",    authenticateToken, getOverview);
+router.get("/by-method",   authenticateToken, getByMethod);
+router.get("/by-country",  authenticateToken, getByCountry);
+router.get("/by-customer", authenticateToken, getByCustomer);
+router.get("/by-channel",  authenticateToken, getByChannel);
+router.get("/timeline",    authenticateToken, getTimeline);
 export default router;
