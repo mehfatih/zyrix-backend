@@ -1,19 +1,10 @@
 import { Router } from "express";
-import { authenticate } from "../middleware/auth";
-import {
-  getCLVOverview,
-  getSegments,
-  getCohorts,
-  getTopCustomers,
-  predictCLV,
-} from "../controllers/customerCLVController";
-
+import { authenticateToken } from "../middleware/auth";
+import { getCLVOverview, getSegments, getCohorts, getTopCustomers, predictCLV } from "../controllers/customerCLVController";
 const router = Router();
-
-router.get("/overview",        authenticate, getCLVOverview);
-router.get("/segments",        authenticate, getSegments);
-router.get("/cohorts",         authenticate, getCohorts);
-router.get("/top",             authenticate, getTopCustomers);
-router.get("/predict/:customerId", authenticate, predictCLV);
-
+router.get("/overview",            authenticateToken, getCLVOverview);
+router.get("/segments",            authenticateToken, getSegments);
+router.get("/cohorts",             authenticateToken, getCohorts);
+router.get("/top",                 authenticateToken, getTopCustomers);
+router.get("/predict/:customerId", authenticateToken, predictCLV);
 export default router;
