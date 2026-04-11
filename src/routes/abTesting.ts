@@ -1,0 +1,13 @@
+import { Router } from "express";
+import { authenticateToken } from "../middleware/auth";
+import { listTests, createTest, getTest, updateTestStatus, deleteTest, trackEvent, getResults } from "../controllers/abTestingController";
+const router = Router();
+router.use(authenticateToken as any);
+router.get("/",                  listTests        as any);
+router.post("/",                 createTest       as any);
+router.get("/:id",               getTest          as any);
+router.patch("/:id/status",      updateTestStatus as any);
+router.delete("/:id",            deleteTest       as any);
+router.post("/event",            trackEvent       as any);
+router.get("/:id/results",       getResults       as any);
+export default router;
