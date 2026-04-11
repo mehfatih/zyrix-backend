@@ -61,6 +61,8 @@ import smartInsightsRoutes from "./routes/smartInsights";
 import predictiveAnalyticsRoutes from "./routes/predictiveAnalytics";
 import alertsEngineRoutes from "./routes/alertsEngine";
 import abTestingRoutes from "./routes/abTesting";
+// ── Layer 5 ──
+import onboardingRoutes from "./routes/onboarding";
 
 const app = express();
 app.use(helmet());
@@ -129,6 +131,8 @@ app.use("/api/smart-insights",          smartInsightsRoutes);
 app.use("/api/predictive-analytics",    predictiveAnalyticsRoutes);
 app.use("/api/alerts-engine",           alertsEngineRoutes);
 app.use("/api/ab-testing",              abTestingRoutes);
+// ── Layer 5 ──
+app.use("/api/onboarding",              onboardingRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
