@@ -63,6 +63,7 @@ import alertsEngineRoutes from "./routes/alertsEngine";
 import abTestingRoutes from "./routes/abTesting";
 // ── Layer 5 ──
 import onboardingRoutes from "./routes/onboarding";
+import setupProgressRoutes from "./routes/setupProgress";
 
 const app = express();
 app.use(helmet());
@@ -133,6 +134,7 @@ app.use("/api/alerts-engine",           alertsEngineRoutes);
 app.use("/api/ab-testing",              abTestingRoutes);
 // ── Layer 5 ──
 app.use("/api/onboarding",              onboardingRoutes);
+app.use("/api/setup-progress",          setupProgressRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
