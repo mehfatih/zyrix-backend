@@ -142,8 +142,7 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 async function bootstrap(): Promise<void> {
-  app.listen(env.port, () => { console.log("
-🚀 Zyrix Backend running on port " + env.port); });
+  app.listen(env.port, () => { console.log("\n🚀 Zyrix Backend running on port " + env.port); });
   try { await prisma.$connect(); console.log("✅ Database connected"); }
   catch (err) { console.error("❌ Database connection failed:", err); }
 }
