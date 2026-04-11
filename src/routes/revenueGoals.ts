@@ -1,7 +1,6 @@
 // ─────────────────────────────────────────────────────────────
-// Zyrix Backend — Revenue Goals Routes
+// Zyrix Backend — Revenue Goals Routes (Elite)
 // ─────────────────────────────────────────────────────────────
-
 import { Router, Request, Response, NextFunction } from "express";
 import { authenticateToken } from "../middleware/auth";
 import { revenueGoalsController } from "../controllers/revenueGoalsController";
@@ -10,6 +9,7 @@ import { AuthenticatedRequest } from "../types";
 const router = Router();
 router.use(authenticateToken);
 
+// ─── Core ────────────────────────────────────────────────────
 router.get("/", (req: Request, res: Response, next: NextFunction) =>
   revenueGoalsController.list(req as AuthenticatedRequest, res, next));
 
@@ -21,5 +21,15 @@ router.put("/:id", (req: Request, res: Response, next: NextFunction) =>
 
 router.delete("/:id", (req: Request, res: Response, next: NextFunction) =>
   revenueGoalsController.delete(req as AuthenticatedRequest, res, next));
+
+// ─── Elite ───────────────────────────────────────────────────
+router.post("/sync-all", (req: Request, res: Response, next: NextFunction) =>
+  revenueGoalsController.syncAll(req as AuthenticatedRequest, res, next));
+
+router.post("/:id/sync", (req: Request, res: Response, next: NextFunction) =>
+  revenueGoalsController.syncProgress(req as AuthenticatedRequest, res, next));
+
+router.get("/:id/forecast", (req: Request, res: Response, next: NextFunction) =>
+  revenueGoalsController.getForecast(req as AuthenticatedRequest, res, next));
 
 export default router;
