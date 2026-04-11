@@ -1,0 +1,14 @@
+import { Router } from "express";
+import { authenticateToken } from "../middleware/auth";
+import { listRules, createRule, updateRule, deleteRule, checkAlerts, listEvents, markEventRead, markAllEventsRead } from "../controllers/alertsEngineController";
+const router = Router();
+router.use(authenticateToken as any);
+router.get("/rules",              listRules        as any);
+router.post("/rules",             createRule       as any);
+router.patch("/rules/:id",        updateRule       as any);
+router.delete("/rules/:id",       deleteRule       as any);
+router.post("/check",             checkAlerts      as any);
+router.get("/events",             listEvents       as any);
+router.patch("/events/read-all",  markAllEventsRead as any);
+router.patch("/events/:id/read",  markEventRead    as any);
+export default router;
