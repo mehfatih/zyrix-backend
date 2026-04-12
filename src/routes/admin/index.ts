@@ -10,6 +10,7 @@ import { adminDisputesController } from "../../controllers/admin/adminDisputesCo
 import { adminSettlementsController } from "../../controllers/admin/adminSettlementsController";
 import { adminStatsController } from "../../controllers/admin/adminStatsController";
 import { adminFeaturesService } from "../../services/admin/adminFeaturesService";
+import { sendWelcomeEmail } from "../../services/admin/adminMerchantsService";
 import { prisma } from "../../config/database";
 import bcrypt from "bcryptjs";
 
@@ -64,6 +65,9 @@ router.post("/register", async (req: Request, res: Response) => {
     });
 
     await adminFeaturesService.applyPlanFeatures(merchant.id, "starter");
+
+    // إرسال Welcome Email
+    await sendWelcomeEmail(merchant.email, merchant.name, merchant.merchantId, tempPassword);
 
     res.status(201).json({
       success: true,
