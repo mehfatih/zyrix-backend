@@ -1,6 +1,3 @@
-// ─────────────────────────────────────────────────────────────
-// Zyrix Backend — Merchant Routes
-// ─────────────────────────────────────────────────────────────
 import { Router } from "express";
 import { authenticateToken } from "../middleware/auth";
 import { merchantController } from "../controllers/merchantController";
@@ -15,15 +12,12 @@ const wrap =
   (req: Request, res: Response, next: NextFunction) =>
     fn(req as AuthenticatedRequest, res, next);
 
-// ── Profile ──────────────────────────────────────────────────
-router.get("/profile",    wrap(merchantController.getProfile));
-router.put("/profile",    wrap(merchantController.updateProfile));
-router.put("/language",   wrap(merchantController.updateLanguage));
-router.put("/currency",   wrap(merchantController.updateCurrency));
-router.post("/onboarding",wrap(merchantController.completeOnboarding));
-router.delete("/account", wrap(merchantController.deleteAccount));
-
-// ── Dashboard Data ────────────────────────────────────────────
+router.get("/profile",       wrap(merchantController.getProfile));
+router.put("/profile",       wrap(merchantController.updateProfile));
+router.put("/language",      wrap(merchantController.updateLanguage));
+router.put("/currency",      wrap(merchantController.updateCurrency));
+router.post("/onboarding",   wrap(merchantController.completeOnboarding));
+router.delete("/account",    wrap(merchantController.deleteAccount));
 router.get("/stats",         wrap(merchantController.getStats));
 router.get("/transactions",  wrap(merchantController.getTransactions));
 router.get("/settlements",   wrap(merchantController.getSettlements));
