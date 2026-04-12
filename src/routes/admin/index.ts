@@ -22,21 +22,21 @@ router.use(authenticateAdmin as any);
 router.get("/stats", adminStatsController.getStats as any);
 
 // Merchants
-router.get("/merchants",                    adminMerchantsController.list as any);
-router.post("/merchants",                   adminMerchantsController.create as any);
-router.get("/merchants/:id",                adminMerchantsController.getById as any);
-router.put("/merchants/:id",                adminMerchantsController.update as any);
-router.delete("/merchants/:id",             requireSuperAdmin as any, adminMerchantsController.remove as any);
-router.put("/merchants/:id/status",         adminMerchantsController.updateStatus as any);
-router.put("/merchants/:id/features",       adminMerchantsController.updateFeatures as any);
-router.put("/merchants/:id/subscription",   adminMerchantsController.updateSubscription as any);
+router.get("/merchants",                  adminMerchantsController.list as any);
+router.post("/merchants",                 adminMerchantsController.create as any);
+router.get("/merchants/:id",              adminMerchantsController.getById as any);
+router.put("/merchants/:id",              adminMerchantsController.update as any);
+router.delete("/merchants/:id",           requireSuperAdmin as any, adminMerchantsController.remove as any);
+router.put("/merchants/:id/status",       adminMerchantsController.updateStatus as any);
+router.put("/merchants/:id/features",     adminMerchantsController.updateFeatures as any);
+router.put("/merchants/:id/subscription", adminMerchantsController.updateSubscription as any);
 
 // Transactions
 router.get("/transactions", adminTransactionsController.list as any);
 
 // Disputes
-router.get("/disputes",       adminDisputesController.list as any);
-router.put("/disputes/:id",   adminDisputesController.update as any);
+router.get("/disputes",     adminDisputesController.list as any);
+router.put("/disputes/:id", adminDisputesController.update as any);
 
 // Settlements
 router.get("/settlements", adminSettlementsController.list as any);
