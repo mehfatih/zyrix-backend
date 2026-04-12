@@ -8,43 +8,26 @@ import { AuthenticatedRequest } from "../types";
 import { Request, Response, NextFunction } from "express";
 
 const router = Router();
-
 router.use(authenticateToken);
 
-router.get(
-  "/profile",
+const wrap =
+  (fn: (req: AuthenticatedRequest, res: Response, next: NextFunction) => Promise<void>) =>
   (req: Request, res: Response, next: NextFunction) =>
-    merchantController.getProfile(req as AuthenticatedRequest, res, next)
-);
+    fn(req as AuthenticatedRequest, res, next);
 
-router.put(
-  "/profile",
-  (req: Request, res: Response, next: NextFunction) =>
-    merchantController.updateProfile(req as AuthenticatedRequest, res, next)
-);
+// ── Profile ──────────────────────────────────────────────────
+router.get("/profile",    wrap(merchantController.getProfile));
+router.put("/profile",    wrap(merchantController.updateProfile));
+router.put("/language",   wrap(merchantController.updateLanguage));
+router.put("/currency",   wrap(merchantController.updateCurrency));
+router.post("/onboarding",wrap(merchantController.completeOnboarding));
+router.delete("/account", wrap(merchantController.deleteAccount));
 
-router.put(
-  "/language",
-  (req: Request, res: Response, next: NextFunction) =>
-    merchantController.updateLanguage(req as AuthenticatedRequest, res, next)
-);
-
-router.put(
-  "/currency",
-  (req: Request, res: Response, next: NextFunction) =>
-    merchantController.updateCurrency(req as AuthenticatedRequest, res, next)
-);
-
-router.post(
-  "/onboarding",
-  (req: Request, res: Response, next: NextFunction) =>
-    merchantController.completeOnboarding(req as AuthenticatedRequest, res, next)
-);
-
-router.delete(
-  "/account",
-  (req: Request, res: Response, next: NextFunction) =>
-    merchantController.deleteAccount(req as AuthenticatedRequest, res, next)
-);
+// ── Dashboard Data ────────────────────────────────────────────
+router.get("/stats",         wrap(merchantController.getStats));
+router.get("/transactions",  wrap(merchantController.getTransactions));
+router.get("/settlements",   wrap(merchantController.getSettlements));
+router.get("/balance",       wrap(merchantController.getBalance));
+router.get("/payment-links", wrap(merchantController.getPaymentLinks));
 
 export default router;
