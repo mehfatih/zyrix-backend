@@ -4,6 +4,8 @@ import { env } from "../config/env";
 import { createOtp, verifyOtp } from "../services/otpService";
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "../services/tokenService";
 import { AuthenticatedRequest, ERROR_CODES } from "../types";
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 async function generateMerchantId(): Promise<string> {
   let id: string;
@@ -16,6 +18,8 @@ async function generateMerchantId(): Promise<string> {
   } while (exists);
   return id;
 }
+
+// ─── OTP (موجود) ──────────────────────────────────────────────
 
 export async function sendOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -128,5 +132,158 @@ export async function deleteAccount(req: Request, res: Response, next: NextFunct
     const { id } = (req as AuthenticatedRequest).merchant;
     await prisma.merchant.delete({ where: { id } });
     res.status(200).json({ success: true, data: { message: "Account deleted successfully" } });
+  } catch (err) { next(err); }
+}
+
+// ─── Email / Password Auth (جديد) ─────────────────────────────
+
+export async function loginEmail(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { email, password } = req.body as { email: string; password: string };
+
+    if (!email || !password) {
+      res.status(400).json({ success: false, error: { code: "VALIDATION_ERROR", message: "Email and password required" } });
+      return;
+    }
+
+    const merchant = await prisma.merchant.findUnique({ where: { email } });
+    if (!merchant || !merchant.passwordHash) {
+      res.status(401).json({ success: false, error: { code: "INVALID_CREDENTIALS", message: "Invalid email or password" } });
+      return;
+    }
+
+    const valid = await bcrypt.compare(password, merchant.passwordHash);
+    if (!valid) {
+      res.status(401).json({ success: false, error: { code: "INVALID_CREDENTIALS", message: "Invalid email or password" } });
+      return;
+    }
+
+    if (merchant.status === "SUSPENDED") {
+      res.status(403).json({ success: false, error: { code: ERROR_CODES.MERCHANT_SUSPENDED, message: "Your account has been suspended." } });
+      return;
+    }
+
+    const token = generateAccessToken(merchant);
+    const refreshTokenStr = generateRefreshToken(merchant.id);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        token, refreshToken: refreshTokenStr,
+        user: {
+          id: merchant.id, name: merchant.name, phone: merchant.phone,
+          email: merchant.email, merchantId: merchant.merchantId,
+          language: merchant.language.toLowerCase(),
+          onboardingDone: merchant.onboardingDone, kycStatus: merchant.kycStatus,
+        },
+      },
+    });
+  } catch (err) { next(err); }
+}
+
+export async function forgotPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { email } = req.body as { email: string };
+
+    if (!email) {
+      res.status(400).json({ success: false, error: { code: "VALIDATION_ERROR", message: "Email required" } });
+      return;
+    }
+
+    const merchant = await prisma.merchant.findUnique({ where: { email } });
+
+    // دايماً نرجع نفس الرسالة عشان ما نكشفش الإيميلات
+    if (!merchant) {
+      res.status(200).json({ success: true, data: { message: "If this email exists, a reset link has been sent." } });
+      return;
+    }
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // ساعة
+
+    await prisma.merchant.update({
+      where: { id: merchant.id },
+      data: { resetToken, resetTokenExpiry } as any,
+    });
+
+    // في الـ production هنبعت إيميل — دلوقتي نرجع التوكن في dev فقط
+    const responseData: Record<string, unknown> = { message: "If this email exists, a reset link has been sent." };
+    if (env.isDev) responseData.devResetToken = resetToken;
+
+    res.status(200).json({ success: true, data: responseData });
+  } catch (err) { next(err); }
+}
+
+export async function resetPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { token, password } = req.body as { token: string; password: string };
+
+    if (!token || !password) {
+      res.status(400).json({ success: false, error: { code: "VALIDATION_ERROR", message: "Token and password required" } });
+      return;
+    }
+
+    if (password.length < 8) {
+      res.status(400).json({ success: false, error: { code: "VALIDATION_ERROR", message: "Password must be at least 8 characters" } });
+      return;
+    }
+
+    const merchant = await prisma.merchant.findFirst({
+      where: { resetToken: token } as any,
+    });
+
+    if (!merchant) {
+      res.status(400).json({ success: false, error: { code: "INVALID_TOKEN", message: "Invalid or expired reset token" } });
+      return;
+    }
+
+    const merchantAny = merchant as any;
+    if (!merchantAny.resetTokenExpiry || new Date() > new Date(merchantAny.resetTokenExpiry)) {
+      res.status(400).json({ success: false, error: { code: "TOKEN_EXPIRED", message: "Reset token has expired" } });
+      return;
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    await prisma.merchant.update({
+      where: { id: merchant.id },
+      data: { passwordHash, resetToken: null, resetTokenExpiry: null } as any,
+    });
+
+    res.status(200).json({ success: true, data: { message: "Password reset successfully" } });
+  } catch (err) { next(err); }
+}
+
+export async function changePassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { id } = (req as AuthenticatedRequest).merchant;
+    const { currentPassword, newPassword } = req.body as { currentPassword: string; newPassword: string };
+
+    if (!currentPassword || !newPassword) {
+      res.status(400).json({ success: false, error: { code: "VALIDATION_ERROR", message: "Current and new password required" } });
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      res.status(400).json({ success: false, error: { code: "VALIDATION_ERROR", message: "New password must be at least 8 characters" } });
+      return;
+    }
+
+    const merchant = await prisma.merchant.findUnique({ where: { id } });
+    if (!merchant || !merchant.passwordHash) {
+      res.status(400).json({ success: false, error: { code: "NO_PASSWORD", message: "No password set for this account" } });
+      return;
+    }
+
+    const valid = await bcrypt.compare(currentPassword, merchant.passwordHash);
+    if (!valid) {
+      res.status(401).json({ success: false, error: { code: "INVALID_CREDENTIALS", message: "Current password is incorrect" } });
+      return;
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await prisma.merchant.update({ where: { id }, data: { passwordHash } });
+
+    res.status(200).json({ success: true, data: { message: "Password changed successfully" } });
   } catch (err) { next(err); }
 }
