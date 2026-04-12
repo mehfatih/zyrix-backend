@@ -327,6 +327,8 @@ model Merchant {
   email                String                 @unique
   phone                String                 @unique
   passwordHash         String?
+  resetToken           String?
+  resetTokenExpiry     DateTime?
   merchantId           String                 @unique
   language             Language               @default(EN)
   currency             Currency               @default(SAR)
