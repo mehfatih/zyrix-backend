@@ -372,8 +372,23 @@ model Merchant {
   dynamicCheckouts     DynamicCheckout[]
   fraudRules           FraudRule[]
   fraudEvents          FraudEvent[]
+  merchantSubscription MerchantSubscription?
 
   @@map("merchants")
+}
+
+model MerchantSubscription {
+  id         String    @id @default(uuid())
+  merchantId String    @unique
+  plan       String    @default("starter")
+  status     String    @default("active")
+  startDate  DateTime  @default(now())
+  endDate    DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  merchant   Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("merchant_subscriptions")
 }
 
 model Wallet {
@@ -1118,44 +1133,44 @@ model DynamicCheckoutEvent {
 }
 
 model FraudRule {
-  id          String          @id @default(uuid())
-  merchantId  String
-  name        String
-  description String?
-  type        FraudRuleType
-  action      FraudRuleAction @default(BLOCK)
-  riskScore   Int             @default(50)
-  conditions  Json
-  isActive    Boolean         @default(true)
-  triggerCount Int            @default(0)
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  merchant    Merchant        @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  id           String          @id @default(uuid())
+  merchantId   String
+  name         String
+  description  String?
+  type         FraudRuleType
+  action       FraudRuleAction @default(BLOCK)
+  riskScore    Int             @default(50)
+  conditions   Json
+  isActive     Boolean         @default(true)
+  triggerCount Int             @default(0)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  merchant     Merchant        @relation(fields: [merchantId], references: [id], onDelete: Cascade)
 
   @@index([merchantId])
   @@map("fraud_rules")
 }
 
 model FraudEvent {
-  id            String         @id @default(uuid())
-  merchantId    String
-  transactionId String?
-  riskScore     Int
-  riskLevel     FraudRiskLevel
-  action        FraudRuleAction
-  triggeredRules String[]      @default([])
-  signals       Json
-  customerPhone String?
-  customerEmail String?
-  country       String?
-  amount        Decimal?       @db.Decimal(18, 2)
-  currency      String?
-  ipAddress     String?
-  reviewed      Boolean        @default(false)
-  reviewNote    String?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  merchant      Merchant       @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  id             String          @id @default(uuid())
+  merchantId     String
+  transactionId  String?
+  riskScore      Int
+  riskLevel      FraudRiskLevel
+  action         FraudRuleAction
+  triggeredRules String[]        @default([])
+  signals        Json
+  customerPhone  String?
+  customerEmail  String?
+  country        String?
+  amount         Decimal?        @db.Decimal(18, 2)
+  currency       String?
+  ipAddress      String?
+  reviewed       Boolean         @default(false)
+  reviewNote     String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  merchant       Merchant        @relation(fields: [merchantId], references: [id], onDelete: Cascade)
 
   @@index([merchantId])
   @@index([merchantId, riskLevel])
