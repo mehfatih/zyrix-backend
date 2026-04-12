@@ -1,9 +1,10 @@
 import { Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "../types";
 import { merchantService } from "../services/merchantService";
-import { Language, Currency } from "@prisma/client";
+import { Language, Currency, PrismaClient } from "@prisma/client";
 import { z } from "zod";
-import prisma from "../lib/prisma";
+
+const prisma = new PrismaClient();
 
 const updateProfileSchema = z.object({
   name: z.string().min(2).max(100).optional(),
@@ -70,6 +71,13 @@ export const merchantController = {
   async getStats(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const merchantId = req.merchant.id;
+
+      const merchantData = await prisma.merchant.findUnique({
+        where: { id: merchantId },
+        select: { currency: true },
+      });
+      const merchantCurrency = merchantData?.currency ?? "SAR";
+
       const now = new Date();
       const start30 = new Date(now); start30.setDate(now.getDate() - 30);
       const start60 = new Date(now); start60.setDate(now.getDate() - 60);
@@ -93,7 +101,7 @@ export const merchantController = {
       });
 
       const sumSuccess = (arr: { amount: any; status: string }[]) =>
-        arr.filter(t => t.status === "SUCCESS").reduce((s, t) => s + Number(t.amount), 0);
+        arr.filter((t) => t.status === "SUCCESS").reduce((s, t) => s + Number(t.amount), 0);
 
       const volumeCurrent = sumSuccess(txCurrent);
       const volumePrev    = sumSuccess(txPrev);
@@ -101,10 +109,10 @@ export const merchantController = {
         ? (((volumeCurrent - volumePrev) / volumePrev) * 100).toFixed(1)
         : null;
 
-      const successCount = txCurrent.filter(t => t.status === "SUCCESS").length;
-      const totalCount   = txCurrent.length;
-      const successRate  = totalCount > 0 ? ((successCount / totalCount) * 100).toFixed(1) : "0.0";
-      const todayCount   = txToday.length;
+      const successCount  = txCurrent.filter((t) => t.status === "SUCCESS").length;
+      const totalCount    = txCurrent.length;
+      const successRate   = totalCount > 0 ? ((successCount / totalCount) * 100).toFixed(1) : "0.0";
+      const todayCount    = txToday.length;
       const disputeAmount = openDisputes.reduce((s, d) => s + Number(d.amount), 0);
 
       const dailyChart: Record<string, number> = {};
@@ -113,7 +121,7 @@ export const merchantController = {
         d.setDate(now.getDate() - i);
         dailyChart[d.toISOString().slice(0, 10)] = 0;
       }
-      txCurrent.forEach(t => {
+      txCurrent.forEach((t) => {
         const day = t.createdAt.toISOString().slice(0, 10);
         if (day in dailyChart && t.status === "SUCCESS") {
           dailyChart[day] += Number(t.amount);
@@ -123,10 +131,10 @@ export const merchantController = {
       res.json({
         success: true,
         data: {
-          volume: { value: volumeCurrent, change: volumeChange, currency: req.merchant.currency ?? "SAR" },
+          volume: { value: volumeCurrent, change: volumeChange, currency: merchantCurrency },
           successRate: { value: parseFloat(successRate), totalCount, successCount },
           transactionsToday: { value: todayCount },
-          openDisputes: { count: openDisputes.length, amount: disputeAmount, currency: req.merchant.currency ?? "SAR" },
+          openDisputes: { count: openDisputes.length, amount: disputeAmount, currency: merchantCurrency },
           dailyChart: Object.entries(dailyChart).map(([date, amount]) => ({ date, amount })),
         },
       });
@@ -178,19 +186,27 @@ export const merchantController = {
         where: { merchantId, createdAt: { gte: since } },
         select: { amount: true, status: true },
       });
-      const totalVolume  = allPeriod.filter(t => t.status === "SUCCESS").reduce((s, t) => s + Number(t.amount), 0);
-      const successCount = allPeriod.filter(t => t.status === "SUCCESS").length;
+
+      const merchantData = await prisma.merchant.findUnique({
+        where: { id: merchantId },
+        select: { currency: true },
+      });
+
+      const totalVolume  = allPeriod.filter((t) => t.status === "SUCCESS").reduce((s, t) => s + Number(t.amount), 0);
+      const successCount = allPeriod.filter((t) => t.status === "SUCCESS").length;
       const totalTx      = allPeriod.length;
 
       res.json({
         success: true,
         data: {
-          transactions: transactions.map(t => ({ ...t, amount: Number(t.amount) })),
+          transactions: transactions.map((t) => ({ ...t, amount: Number(t.amount) })),
           pagination: { page, limit, total, pages: Math.ceil(total / limit) },
           stats: {
-            totalVolume, totalTransactions: totalTx, successCount,
+            totalVolume,
+            totalTransactions: totalTx,
+            successCount,
             successRate: totalTx > 0 ? parseFloat(((successCount / totalTx) * 100).toFixed(1)) : 0,
-            currency: req.merchant.currency ?? "SAR",
+            currency: merchantData?.currency ?? "SAR",
           },
         },
       });
@@ -221,9 +237,11 @@ export const merchantController = {
       res.json({
         success: true,
         data: {
-          settlements: settlements.map(s => ({
+          settlements: settlements.map((s) => ({
             ...s,
-            amount: Number(s.amount), commission: Number(s.commission), netAmount: Number(s.netAmount),
+            amount: Number(s.amount),
+            commission: Number(s.commission),
+            netAmount: Number(s.netAmount),
           })),
           pagination: { page, limit, total, pages: Math.ceil(total / limit) },
           nextSettlement: nextSettlement ? {
@@ -240,19 +258,25 @@ export const merchantController = {
   async getBalance(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const merchantId = req.merchant.id;
+
+      const merchantData = await prisma.merchant.findUnique({
+        where: { id: merchantId },
+        select: { currency: true },
+      });
+
       const wallets = await prisma.wallet.findMany({
         where: { merchantId },
         orderBy: { currency: "asc" },
         select: { id: true, currency: true, balance: true, lockedBalance: true, isActive: true, updatedAt: true },
       });
 
-      const mainCurrency = req.merchant.currency ?? "SAR";
-      const mainWallet   = wallets.find(w => w.currency === mainCurrency);
+      const mainCurrency = merchantData?.currency ?? "SAR";
+      const mainWallet   = wallets.find((w) => w.currency === mainCurrency);
 
       res.json({
         success: true,
         data: {
-          wallets: wallets.map(w => ({
+          wallets: wallets.map((w) => ({
             ...w,
             balance: Number(w.balance),
             lockedBalance: Number(w.lockedBalance),
@@ -291,13 +315,13 @@ export const merchantController = {
       res.json({
         success: true,
         data: {
-          links: links.map(l => ({
+          links: links.map((l) => ({
             ...l,
             amount:    l.amount    ? Number(l.amount)    : null,
             minAmount: l.minAmount ? Number(l.minAmount) : null,
             maxAmount: l.maxAmount ? Number(l.maxAmount) : null,
             totalCollected: l.payments
-              .filter(p => p.status === "COMPLETED")
+              .filter((p) => p.status === "COMPLETED")
               .reduce((s, p) => s + Number(p.amount), 0),
           })),
           pagination: { page, limit, total, pages: Math.ceil(total / limit) },
