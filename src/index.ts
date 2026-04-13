@@ -80,6 +80,7 @@ import growthExperimentsRoutes from "./routes/growthExperiments";
 // ── CRM ──
 import quotesRoutes from "./routes/quotes.routes";
 import pipelineRoutes from "./routes/pipeline";
+import loyaltyRoutes from "./routes/loyalty";
 
 const app = express();
 app.use(helmet());
@@ -167,6 +168,7 @@ app.use("/api/growth-experiments",      growthExperimentsRoutes);
 // ── CRM ──
 app.use("/api/quotes",                  quotesRoutes);
 app.use("/api/pipeline",                pipelineRoutes);
+app.use("/api/loyalty",                 loyaltyRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
