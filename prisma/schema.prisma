@@ -1,184 +1,1434 @@
-import express from "express";
-import helmet from "helmet";
-import { env } from "./config/env";
-import { corsOptions } from "./config/cors";
-import { prisma } from "./config/database";
-import { globalRateLimiter } from "./middleware/rateLimiter";
-import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
-import authRoutes from "./routes/auth";
-import merchantRoutes from "./routes/merchant";
-import dashboardRoutes from "./routes/dashboard";
-import transactionsRoutes from "./routes/transactions";
-import balanceRoutes from "./routes/balance";
-import analyticsRoutes from "./routes/analytics";
-import analyticsIntelligenceRoutes from "./routes/analytics-intelligence";
-import settlementsRoutes from "./routes/settlements";
-import disputesRoutes from "./routes/disputes";
-import refundsRoutes from "./routes/refunds";
-import notificationsRoutes from "./routes/notifications";
-import invoicesRoutes from "./routes/invoices";
-import expensesRoutes from "./routes/expenses";
-import revenueGoalsRoutes from "./routes/revenueGoals";
-import subscriptionsRoutes from "./routes/subscriptions";
-import paymentLinksRoutes from "./routes/paymentLinks";
-import transfersRoutes from "./routes/transfers";
-import apiKeysRoutes from "./routes/apiKeys";
-import webhooksRoutes from "./routes/webhooks";
-import codRoutes from "./routes/cod";
-import fxRoutes from "./routes/fx";
-import adminRoutes from "./routes/admin";
-import teamRoutes from "./routes/team";
-import hostedCheckoutRoutes from "./routes/hostedCheckout";
-import paymentMethodsRoutes from "./routes/paymentMethods";
-import retryRoutes from "./routes/retry";
-import reconciliationRoutes from "./routes/reconciliation";
-import realtimeRoutes from "./routes/realtime";
-import customersRoutes from "./routes/customers";
-import featureFlagsRoutes from "./routes/featureFlags";
-import walletsRoutes from "./routes/wallets";
-import gatewayRoutingRoutes from "./routes/gatewayRouting";
-import crossRetryRoutes from "./routes/crossRetry";
-import binRoutes from "./routes/bin";
-import dynamicCheckoutRoutes from "./routes/dynamicCheckout";
-import fraudRoutes from "./routes/fraud";
-import growthRoutes from "./routes/growth";
-import tokenizationRoutes from "./routes/tokenization";
-import chargebackRoutes from "./routes/chargeback";
-import approvalOptimizationRoutes from "./routes/approval-optimization";
-import payoutSchedulingRoutes from "./routes/payoutScheduling";
-import commissionRoutes from "./routes/commission";
-import taxRoutes from "./routes/tax";
-import recoveryRoutes from "./routes/recovery";
-import financialReportsRoutes from "./routes/financialReports";
-import realtimeDashboardRoutes from "./routes/realtimeDashboard";
-import conversionFunnelRoutes from "./routes/conversionFunnel";
-import successRateAnalysisRoutes from "./routes/successRateAnalysis";
-import revenueBreakdownRoutes from "./routes/revenueBreakdown";
-import customerCLVRoutes from "./routes/customerCLV";
-// ── Layer 4 Phase 2 ──
-import cohortAnalysisRoutes from "./routes/cohortAnalysis";
-import smartInsightsRoutes from "./routes/smartInsights";
-import predictiveAnalyticsRoutes from "./routes/predictiveAnalytics";
-import alertsEngineRoutes from "./routes/alertsEngine";
-import abTestingRoutes from "./routes/abTesting";
-// ── Layer 5 ──
-import onboardingRoutes from "./routes/onboarding";
-import setupProgressRoutes from "./routes/setupProgress";
-import uxLayerRoutes from "./routes/uxLayer";
-// ── Layer 6A ──
-import advancedNotificationsRoutes from "./routes/advancedNotifications";
-import paymentRemindersRoutes from "./routes/paymentReminders";
-import crmIntegrationRoutes from "./routes/crmIntegration";
-import marketingAutomationRoutes from "./routes/marketingAutomation";
-import affiliateSystemRoutes from "./routes/affiliateSystem";
-// ── Layer 6B ──
-import teamAccountsRoutes from "./routes/teamAccounts";
-import permissionsEngineRoutes from "./routes/permissionsEngine";
-import marketplaceSplitRoutes from "./routes/marketplaceSplit";
-import partnerDashboardRoutes from "./routes/partnerDashboard";
-import growthExperimentsRoutes from "./routes/growthExperiments";
-// ── CRM ──
-import quotesRoutes from "./routes/quotes.routes";
-import pipelineRoutes from "./routes/pipeline";
-import loyaltyRoutes from "./routes/loyalty";
+// ─────────────────────────────────────────────────────────────
+// Zyrix — Prisma Schema
+// ─────────────────────────────────────────────────────────────
 
-const app = express();
-app.use(helmet());
-app.use(corsOptions);
-app.use(globalRateLimiter);
-app.use(express.json({ limit: "10kb" }));
-app.use(express.urlencoded({ extended: true, limit: "10kb" }));
-
-app.get("/health", (_req, res) => {
-  res.status(200).json({ success: true, data: { status: "ok", service: "zyrix-backend", version: "1.0.0", environment: env.nodeEnv, timestamp: new Date().toISOString() } });
-});
-
-app.use("/api/auth",                    authRoutes);
-app.use("/api/merchant",                merchantRoutes);
-app.use("/api/dashboard",               dashboardRoutes);
-app.use("/api/transactions",            transactionsRoutes);
-app.use("/api/balance",                 balanceRoutes);
-app.use("/api/analytics",               analyticsRoutes);
-app.use("/api/analytics/intelligence",  analyticsIntelligenceRoutes);
-app.use("/api/settlements",             settlementsRoutes);
-app.use("/api/disputes",                disputesRoutes);
-app.use("/api/refunds",                 refundsRoutes);
-app.use("/api/notifications",           notificationsRoutes);
-app.use("/api/invoices",                invoicesRoutes);
-app.use("/api/expenses",                expensesRoutes);
-app.use("/api/revenue-goals",           revenueGoalsRoutes);
-app.use("/api/subscriptions",           subscriptionsRoutes);
-app.use("/api/payment-links",           paymentLinksRoutes);
-app.use("/api/transfers",               transfersRoutes);
-app.use("/api/api-keys",                apiKeysRoutes);
-app.use("/api/webhooks",                webhooksRoutes);
-app.use("/api/cod",                     codRoutes);
-app.use("/api/fx",                      fxRoutes);
-app.use("/api/admin",                   adminRoutes);
-app.use("/api/team",                    teamRoutes);
-app.use("/api/hosted-checkout",         hostedCheckoutRoutes);
-app.use("/api/payment-methods",         paymentMethodsRoutes);
-app.use("/api/retry",                   retryRoutes);
-app.use("/api/reconciliation",          reconciliationRoutes);
-app.use("/api/realtime",                realtimeRoutes);
-app.use("/api/customers",               customersRoutes);
-app.use("/api/feature-flags",           featureFlagsRoutes);
-app.use("/api/wallets",                 walletsRoutes);
-app.use("/api/gateway-routing",         gatewayRoutingRoutes);
-app.use("/api/cross-retry",             crossRetryRoutes);
-app.use("/api/bin",                     binRoutes);
-app.use("/api/dynamic-checkout",        dynamicCheckoutRoutes);
-app.use("/api/fraud",                   fraudRoutes);
-app.use("/api/growth",                  growthRoutes);
-app.use("/api/tokenization",            tokenizationRoutes);
-app.use("/api/chargeback",              chargebackRoutes);
-app.use("/api/approval-optimization",   approvalOptimizationRoutes);
-app.use("/api/payout-scheduling",       payoutSchedulingRoutes);
-app.use("/api/commission",              commissionRoutes);
-app.use("/api/tax",                     taxRoutes);
-app.use("/api/recovery",                recoveryRoutes);
-app.use("/api/financial-reports",       financialReportsRoutes);
-app.use("/api/realtime-dashboard",      realtimeDashboardRoutes);
-app.use("/api/conversion-funnel",       conversionFunnelRoutes);
-app.use("/api/success-rate",            successRateAnalysisRoutes);
-app.use("/api/revenue-breakdown",       revenueBreakdownRoutes);
-app.use("/api/customer-clv",            customerCLVRoutes);
-// ── Layer 4 Phase 2 ──
-app.use("/api/cohort-analysis",         cohortAnalysisRoutes);
-app.use("/api/smart-insights",          smartInsightsRoutes);
-app.use("/api/predictive-analytics",    predictiveAnalyticsRoutes);
-app.use("/api/alerts-engine",           alertsEngineRoutes);
-app.use("/api/ab-testing",              abTestingRoutes);
-// ── Layer 5 ──
-app.use("/api/onboarding",              onboardingRoutes);
-app.use("/api/setup-progress",          setupProgressRoutes);
-app.use("/api/ux-layer",                uxLayerRoutes);
-// ── Layer 6A ──
-app.use("/api/advanced-notifications",  advancedNotificationsRoutes);
-app.use("/api/payment-reminders",       paymentRemindersRoutes);
-app.use("/api/crm-integration",         crmIntegrationRoutes);
-app.use("/api/marketing-automation",    marketingAutomationRoutes);
-app.use("/api/affiliate-system",        affiliateSystemRoutes);
-// ── Layer 6B ──
-app.use("/api/team-accounts",           teamAccountsRoutes);
-app.use("/api/permissions",             permissionsEngineRoutes);
-app.use("/api/marketplace",             marketplaceSplitRoutes);
-app.use("/api/partners",                partnerDashboardRoutes);
-app.use("/api/growth-experiments",      growthExperimentsRoutes);
-// ── CRM ──
-app.use("/api/quotes",                  quotesRoutes);
-app.use("/api/pipeline",                pipelineRoutes);
-app.use("/api/loyalty",                 loyaltyRoutes);
-
-app.use(notFoundHandler);
-app.use(errorHandler);
-
-async function bootstrap(): Promise<void> {
-  app.listen(env.port, () => { console.log("\n🚀 Zyrix Backend running on port " + env.port); });
-  try { await prisma.$connect(); console.log("✅ Database connected"); }
-  catch (err) { console.error("❌ Database connection failed:", err); }
+generator client {
+  provider = "prisma-client-js"
 }
 
-process.on("SIGINT",  async () => { await prisma.$disconnect(); process.exit(0); });
-process.on("SIGTERM", async () => { await prisma.$disconnect(); process.exit(0); });
-bootstrap();
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Language {
+  AR
+  TR
+  EN
+}
+
+enum Currency {
+  SAR
+  TRY
+  USD
+  EUR
+  AED
+  KWD
+  QAR
+  IQD
+}
+
+enum MerchantStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_KYC
+}
+
+enum KycStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum TransactionStatus {
+  SUCCESS
+  PENDING
+  FAILED
+}
+
+enum PaymentMethod {
+  CREDIT_CARD
+  BANK_TRANSFER
+  DIGITAL_WALLET
+  CRYPTO
+}
+
+enum SettlementStatus {
+  SCHEDULED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  ESCALATED
+}
+
+enum RefundStatus {
+  PROCESSING
+  COMPLETED
+  REJECTED
+}
+
+enum TransferStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum CODStatus {
+  PENDING
+  OUT_FOR_DELIVERY
+  COLLECTED
+  FAILED
+  RETURNED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum GoalPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum SubInterval {
+  MONTHLY
+  YEARLY
+}
+
+enum SubStatus {
+  ACTIVE
+  CANCELLED
+  PAST_DUE
+}
+
+enum LinkStatus {
+  ACTIVE
+  EXPIRED
+  DISABLED
+}
+
+enum NotificationType {
+  PAYMENT
+  SETTLEMENT
+  DISPUTE
+  SYSTEM
+  SECURITY
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  SUPPORT
+  FINANCE
+}
+
+enum TeamMemberRole {
+  ADMIN
+  MANAGER
+  ACCOUNTANT
+  VIEWER
+}
+
+enum TeamMemberStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+}
+
+enum CheckoutStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum CheckoutTheme {
+  DARK
+  LIGHT
+  AUTO
+}
+
+enum PaymentMethodType {
+  CREDIT_CARD
+  DEBIT_CARD
+  APPLE_PAY
+  GOOGLE_PAY
+  BANK_TRANSFER
+  STC_PAY
+  MADA
+  TAMARA
+  TABBY
+  CRYPTO
+  COD
+  WALLET
+}
+
+enum PaymentMethodStatus {
+  ACTIVE
+  INACTIVE
+  PENDING_SETUP
+}
+
+enum RetryStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  EXHAUSTED
+}
+
+enum ReconciliationStatus {
+  BALANCED
+  DISCREPANCY
+  PENDING
+}
+
+enum EventType {
+  TRANSACTION_CREATED
+  TRANSACTION_UPDATED
+  TRANSACTION_FAILED
+  TRANSACTION_RETRY
+  SETTLEMENT_UPDATED
+  REFUND_CREATED
+  DISPUTE_OPENED
+  PAYMENT_LINK_PAID
+  BALANCE_CHANGED
+}
+
+enum WalletTransactionType {
+  CREDIT
+  DEBIT
+}
+
+enum GatewayStatus {
+  ACTIVE
+  INACTIVE
+  DEGRADED
+}
+
+enum GatewayRoutingMode {
+  COST_OPTIMIZED
+  SUCCESS_RATE
+  LOAD_BALANCED
+  COUNTRY_BASED
+}
+
+enum RoutingRuleType {
+  COUNTRY
+  CURRENCY
+  AMOUNT_RANGE
+  PAYMENT_METHOD
+}
+
+enum GatewayEventType {
+  SUCCESS
+  FAILURE
+  TIMEOUT
+  PARTIAL
+}
+
+enum CrossRetryStatus {
+  PENDING
+  SUCCEEDED
+  EXHAUSTED
+  CANCELLED
+}
+
+enum CrossRetryAttemptStatus {
+  SUCCESS
+  FAILED
+  TIMEOUT
+}
+
+enum BinCardType {
+  CREDIT
+  DEBIT
+  PREPAID
+  UNKNOWN
+}
+
+enum BinCardBrand {
+  VISA
+  MASTERCARD
+  AMEX
+  MADA
+  MEEZA
+  TROY
+  OTHER
+}
+
+enum DynamicCheckoutStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum DynamicCheckoutTrigger {
+  AMOUNT_RANGE
+  CUSTOMER_COUNTRY
+  PAYMENT_METHOD
+  TIME_OF_DAY
+  RETURNING_CUSTOMER
+}
+
+enum FraudRiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum FraudRuleAction {
+  ALLOW
+  BLOCK
+  REVIEW
+  CHALLENGE
+}
+
+enum FraudRuleType {
+  VELOCITY
+  AMOUNT_LIMIT
+  COUNTRY_BLOCK
+  IP_BLOCK
+  CARD_PATTERN
+  DUPLICATE_CHECK
+  CUSTOM
+}
+
+// ── CRM ──────────────────────────────────────────────────────
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+  VIEWED
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+enum QuoteLanguage {
+  AR
+  TR
+  EN
+}
+
+enum DealStatus {
+  OPEN
+  WON
+  LOST
+}
+
+// ─────────────────────────────────────────────────────────────
+
+model Admin {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  role         AdminRole @default(SUPPORT)
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("admins")
+}
+
+model Merchant {
+  id                   String                 @id @default(uuid())
+  name                 String
+  email                String                 @unique
+  phone                String                 @unique
+  passwordHash         String?
+  resetToken           String?
+  resetTokenExpiry     DateTime?
+  merchantId           String                 @unique
+  language             Language               @default(EN)
+  currency             Currency               @default(SAR)
+  status               MerchantStatus         @default(ACTIVE)
+  kycStatus            KycStatus              @default(PENDING)
+  businessName         String?
+  businessType         String?
+  country              String
+  timezone             String                 @default("UTC")
+  onboardingDone       Boolean                @default(false)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  transactions         Transaction[]
+  settlements          Settlement[]
+  disputes             Dispute[]
+  refunds              Refund[]
+  invoices             Invoice[]
+  expenses             Expense[]
+  revenueGoals         RevenueGoal[]
+  subscriptions        Subscription[]
+  paymentLinks         PaymentLink[]
+  notifications        Notification[]
+  apiKeys              ApiKey[]
+  webhooks             Webhook[]
+  codOrders            CODOrder[]
+  teamMembers          TeamMember[]
+  hostedCheckouts      HostedCheckout[]
+  paymentMethodConfigs PaymentMethodConfig[]
+  reconciliations      ReconciliationReport[]
+  eventLogs            EventLog[]
+  otpCodes             OtpCode[]
+  customers            Customer[]
+  featureFlags         FeatureFlag[]
+  wallets              Wallet[]
+  sentTransfers        Transfer[]             @relation("SentTransfers")
+  receivedTransfers    Transfer[]             @relation("ReceivedTransfers")
+  gateways             PaymentGateway[]
+  gatewayRoutingRules  GatewayRoutingRule[]
+  gatewayRoutingConfig GatewayRoutingConfig?
+  gatewayEvents        GatewayEvent[]
+  crossRetries         CrossGatewayRetry[]
+  binLookups           BinLookup[]
+  dynamicCheckouts     DynamicCheckout[]
+  fraudRules           FraudRule[]
+  fraudEvents          FraudEvent[]
+  merchantSubscription MerchantSubscription?
+  // ── CRM ──
+  quotes               Quote[]
+  quoteTemplates       QuoteTemplate[]
+  pipelineStages       PipelineStage[]
+  deals                Deal[]
+  loyaltySettings      LoyaltySettings?
+  loyaltyCustomers     LoyaltyCustomer[]
+  loyaltyTx            LoyaltyTransaction[]
+
+  @@map("merchants")
+}
+
+model MerchantSubscription {
+  id         String    @id @default(uuid())
+  merchantId String    @unique
+  plan       String    @default("starter")
+  status     String    @default("active")
+  startDate  DateTime  @default(now())
+  endDate    DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  merchant   Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("merchant_subscriptions")
+}
+
+model Wallet {
+  id            String              @id @default(uuid())
+  merchantId    String
+  currency      String
+  balance       Decimal             @default(0) @db.Decimal(18, 2)
+  lockedBalance Decimal             @default(0) @db.Decimal(18, 2)
+  isActive      Boolean             @default(false)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  merchant      Merchant            @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  transactions  WalletTransaction[]
+
+  @@unique([merchantId, currency])
+  @@index([merchantId])
+  @@map("wallets")
+}
+
+model WalletTransaction {
+  id            String                @id @default(uuid())
+  walletId      String
+  type          WalletTransactionType
+  amount        Decimal               @db.Decimal(18, 2)
+  balanceBefore Decimal               @db.Decimal(18, 2)
+  balanceAfter  Decimal               @db.Decimal(18, 2)
+  description   String?
+  reference     String?
+  createdAt     DateTime              @default(now())
+  wallet        Wallet                @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+  @@map("wallet_transactions")
+}
+
+model OtpCode {
+  id         String    @id @default(uuid())
+  phone      String
+  code       String
+  expiresAt  DateTime
+  verified   Boolean   @default(false)
+  attempts   Int       @default(0)
+  merchantId String?
+  createdAt  DateTime  @default(now())
+  merchant   Merchant? @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("otp_codes")
+}
+
+model PaymentMethodConfig {
+  id           String              @id @default(uuid())
+  merchantId   String
+  method       PaymentMethodType
+  status       PaymentMethodStatus @default(INACTIVE)
+  displayName  String?
+  displayOrder Int                 @default(0)
+  config       Json?
+  isDefault    Boolean             @default(false)
+  countries    String[]
+  currencies   String[]
+  minAmount    Decimal?            @db.Decimal(18, 2)
+  maxAmount    Decimal?            @db.Decimal(18, 2)
+  feePercent   Decimal?            @db.Decimal(5, 4)
+  feeFixed     Decimal?            @db.Decimal(18, 2)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  merchant     Merchant            @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@unique([merchantId, method])
+  @@map("payment_method_configs")
+}
+
+model Transaction {
+  id            String            @id @default(uuid())
+  merchantId    String
+  transactionId String            @unique
+  amount        Decimal           @db.Decimal(18, 2)
+  currency      String
+  status        TransactionStatus
+  method        PaymentMethod
+  customerName  String
+  customerEmail String?
+  customerPhone String?
+  country       String
+  flag          String
+  isCredit      Boolean
+  description   String?
+  metadata      Json?
+  retryCount    Int               @default(0)
+  lastRetryAt   DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  merchant      Merchant          @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  disputes      Dispute[]
+  refunds       Refund[]
+  retryLogs     RetryLog[]
+
+  @@map("transactions")
+}
+
+model RetryLog {
+  id            String      @id @default(uuid())
+  transactionId String
+  attemptNumber Int
+  status        RetryStatus
+  errorMessage  String?
+  errorCode     String?
+  nextRetryAt   DateTime?
+  executedAt    DateTime    @default(now())
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@map("retry_logs")
+}
+
+model ReconciliationReport {
+  id                String               @id @default(uuid())
+  merchantId        String
+  reportId          String               @unique
+  periodStart       DateTime
+  periodEnd         DateTime
+  totalTransactions Int
+  successCount      Int
+  failedCount       Int
+  pendingCount      Int
+  grossVolume       Decimal              @db.Decimal(18, 2)
+  totalRefunds      Decimal              @db.Decimal(18, 2)
+  totalSettlements  Decimal              @db.Decimal(18, 2)
+  totalFees         Decimal              @db.Decimal(18, 2)
+  netBalance        Decimal              @db.Decimal(18, 2)
+  discrepancyAmount Decimal              @default(0) @db.Decimal(18, 2)
+  status            ReconciliationStatus @default(PENDING)
+  currency          String               @default("SAR")
+  notes             String?
+  createdAt         DateTime             @default(now())
+  merchant          Merchant             @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("reconciliation_reports")
+}
+
+model EventLog {
+  id         String    @id @default(uuid())
+  merchantId String
+  eventType  EventType
+  payload    Json
+  delivered  Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  merchant   Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId, delivered, createdAt])
+  @@map("event_logs")
+}
+
+model Settlement {
+  id            String           @id @default(uuid())
+  merchantId    String
+  settlementId  String           @unique
+  amount        Decimal          @db.Decimal(18, 2)
+  commission    Decimal          @db.Decimal(18, 2)
+  netAmount     Decimal          @db.Decimal(18, 2)
+  currency      String
+  status        SettlementStatus
+  bankName      String
+  bankAccount   String
+  scheduledDate DateTime
+  completedDate DateTime?
+  createdAt     DateTime         @default(now())
+  merchant      Merchant         @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("settlements")
+}
+
+model Dispute {
+  id            String        @id @default(uuid())
+  merchantId    String
+  transactionId String
+  disputeId     String        @unique
+  reason        String
+  amount        Decimal       @db.Decimal(18, 2)
+  currency      String
+  status        DisputeStatus
+  resolution    String?
+  evidence      Json?
+  createdAt     DateTime      @default(now())
+  resolvedAt    DateTime?
+  merchant      Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  transaction   Transaction   @relation(fields: [transactionId], references: [id])
+
+  @@map("disputes")
+}
+
+model Refund {
+  id            String       @id @default(uuid())
+  merchantId    String
+  transactionId String
+  refundId      String       @unique
+  amount        Decimal      @db.Decimal(18, 2)
+  currency      String
+  reason        String
+  status        RefundStatus @default(PROCESSING)
+  completedAt   DateTime?
+  createdAt     DateTime     @default(now())
+  merchant      Merchant     @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  transaction   Transaction  @relation(fields: [transactionId], references: [id])
+
+  @@map("refunds")
+}
+
+model Transfer {
+  id             String         @id @default(uuid())
+  transferId     String         @unique
+  fromMerchantId String
+  toMerchantId   String
+  amount         Decimal        @db.Decimal(18, 2)
+  currency       String
+  description    String?
+  status         TransferStatus @default(PENDING)
+  createdAt      DateTime       @default(now())
+  completedAt    DateTime?
+  fromMerchant   Merchant       @relation("SentTransfers", fields: [fromMerchantId], references: [id], onDelete: Cascade)
+  toMerchant     Merchant       @relation("ReceivedTransfers", fields: [toMerchantId], references: [id], onDelete: Cascade)
+
+  @@map("transfers")
+}
+
+model CODOrder {
+  id              String    @id @default(uuid())
+  merchantId      String
+  orderId         String    @unique
+  customerName    String
+  amount          Decimal   @db.Decimal(18, 2)
+  currency        String    @default("SAR")
+  address         String
+  phone           String?
+  description     String?
+  status          CODStatus @default(PENDING)
+  collectedAmount Decimal   @default(0) @db.Decimal(18, 2)
+  collectedAt     DateTime?
+  notes           String?
+  createdAt       DateTime  @default(now())
+  merchant        Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("cod_orders")
+}
+
+model Invoice {
+  id           String        @id @default(uuid())
+  merchantId   String
+  invoiceId    String        @unique
+  customerName String
+  total        Decimal       @db.Decimal(18, 2)
+  currency     String
+  status       InvoiceStatus
+  items        Json
+  dueDate      DateTime
+  paidDate     DateTime?
+  createdAt    DateTime      @default(now())
+  merchant     Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("invoices")
+}
+
+model Expense {
+  id          String   @id @default(uuid())
+  merchantId  String
+  category    String
+  description String
+  amount      Decimal  @db.Decimal(18, 2)
+  currency    String
+  date        DateTime
+  createdAt   DateTime @default(now())
+  merchant    Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("expenses")
+}
+
+model RevenueGoal {
+  id            String     @id @default(uuid())
+  merchantId    String
+  name          String
+  targetAmount  Decimal    @db.Decimal(18, 2)
+  currentAmount Decimal    @default(0) @db.Decimal(18, 2)
+  currency      String
+  period        GoalPeriod
+  startDate     DateTime
+  endDate       DateTime
+  createdAt     DateTime   @default(now())
+  merchant      Merchant   @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("revenue_goals")
+}
+
+model Subscription {
+  id                 String      @id @default(uuid())
+  merchantId         String
+  planName           String
+  amount             Decimal     @db.Decimal(18, 2)
+  currency           String
+  interval           SubInterval
+  status             SubStatus
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  createdAt          DateTime    @default(now())
+  merchant           Merchant    @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+model PaymentLink {
+  id          String        @id @default(uuid())
+  merchantId  String
+  linkId      String        @unique
+  title       String
+  description String?
+  amount      Decimal?      @db.Decimal(18, 2)
+  minAmount   Decimal?      @db.Decimal(18, 2)
+  maxAmount   Decimal?      @db.Decimal(18, 2)
+  currency    String
+  url         String
+  status      LinkStatus
+  expiresAt   DateTime?
+  usageCount  Int           @default(0)
+  paidCount   Int           @default(0)
+  features    String?
+  faqs        String?
+  allowNote   Boolean       @default(false)
+  showQr      Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  merchant    Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  payments    LinkPayment[]
+
+  @@map("payment_links")
+}
+
+model LinkPayment {
+  id          String      @id @default(uuid())
+  linkId      String
+  paymentLink PaymentLink @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  txId        String      @unique
+  amount      Decimal     @db.Decimal(18, 2)
+  currency    String
+  payerName   String
+  payerPhone  String
+  payerNote   String?
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  status      String      @default("COMPLETED")
+  createdAt   DateTime    @default(now())
+
+  @@map("link_payments")
+}
+
+model Notification {
+  id         String           @id @default(uuid())
+  merchantId String
+  title      String
+  body       String
+  type       NotificationType
+  isRead     Boolean          @default(false)
+  data       Json?
+  createdAt  DateTime         @default(now())
+  merchant   Merchant         @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model ApiKey {
+  id         String    @id @default(uuid())
+  merchantId String
+  name       String
+  keyHash    String    @unique
+  keyPrefix  String
+  isActive   Boolean   @default(true)
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+  merchant   Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("api_keys")
+}
+
+model Webhook {
+  id              String    @id @default(uuid())
+  merchantId      String
+  name            String
+  url             String
+  secret          String
+  events          String[]
+  isActive        Boolean   @default(true)
+  failureCount    Int       @default(0)
+  lastTriggeredAt DateTime?
+  createdAt       DateTime  @default(now())
+  merchant        Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("webhooks")
+}
+
+model TeamMember {
+  id          String           @id @default(uuid())
+  merchantId  String
+  name        String
+  email       String
+  role        TeamMemberRole   @default(VIEWER)
+  status      TeamMemberStatus @default(INVITED)
+  inviteToken String?          @unique
+  invitedAt   DateTime         @default(now())
+  joinedAt    DateTime?
+  updatedAt   DateTime         @updatedAt
+  merchant    Merchant         @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@unique([merchantId, email])
+  @@map("team_members")
+}
+
+model FxRate {
+  id         String   @id @default(uuid())
+  fromCcy    String
+  toCcy      String
+  rate       Decimal  @db.Decimal(18, 6)
+  source     String   @default("manual")
+  recordedAt DateTime @default(now())
+
+  @@unique([fromCcy, toCcy, recordedAt])
+  @@map("fx_rates")
+}
+
+model HostedCheckout {
+  id                String            @id @default(uuid())
+  merchantId        String
+  checkoutId        String            @unique
+  name              String
+  description       String?
+  logoUrl           String?
+  brandColor        String            @default("#1A56DB")
+  theme             CheckoutTheme     @default(DARK)
+  currency          String            @default("SAR")
+  allowedCurrencies String[]
+  allowedMethods    String[]
+  requirePhone      Boolean           @default(false)
+  requireAddress    Boolean           @default(false)
+  allowNote         Boolean           @default(false)
+  successUrl        String?
+  cancelUrl         String?
+  webhookUrl        String?
+  isActive          Boolean           @default(true)
+  status            CheckoutStatus    @default(ACTIVE)
+  usageCount        Int               @default(0)
+  totalRevenue      Decimal           @default(0) @db.Decimal(18, 2)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  merchant          Merchant          @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  sessions          CheckoutSession[]
+
+  @@map("hosted_checkouts")
+}
+
+model CheckoutSession {
+  id              String         @id @default(uuid())
+  sessionId       String         @unique
+  checkoutId      String
+  amount          Decimal        @db.Decimal(18, 2)
+  currency        String
+  customerName    String?
+  customerEmail   String?
+  customerPhone   String?
+  customerAddress String?
+  customerNote    String?
+  status          String         @default("PENDING")
+  paidAt          DateTime?
+  expiresAt       DateTime
+  metadata        Json?
+  createdAt       DateTime       @default(now())
+  checkout        HostedCheckout @relation(fields: [checkoutId], references: [id], onDelete: Cascade)
+
+  @@map("checkout_sessions")
+}
+
+model Customer {
+  id            String   @id @default(uuid())
+  customerId    String   @unique @default(uuid())
+  merchantId    String
+  name          String
+  phone         String?
+  email         String?
+  city          String?
+  country       String?
+  tags          String[] @default([])
+  notes         String?
+  firstSeenAt   DateTime @default(now())
+  lastSeenAt    DateTime @default(now())
+  totalSpent    Float    @default(0)
+  totalOrders   Int      @default(0)
+  avgOrderValue Float    @default(0)
+  refundCount   Int      @default(0)
+  refundAmount  Float    @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  merchant      Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  quotes        Quote[]
+  deals         Deal[]
+  loyaltyProfile LoyaltyCustomer?
+
+  @@index([merchantId])
+  @@index([merchantId, totalSpent])
+  @@index([merchantId, lastSeenAt])
+  @@map("customers")
+}
+
+model FeatureFlag {
+  id                    String   @id @default(uuid())
+  merchantId            String
+  key                   String
+  label                 String
+  description           String   @default("")
+  category              String   @default("core")
+  enabled               Boolean  @default(false)
+  requiresExternalSetup Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  merchant              Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@unique([merchantId, key])
+  @@index([merchantId])
+  @@map("feature_flags")
+}
+
+model PaymentGateway {
+  id                  String               @id @default(uuid())
+  merchantId          String
+  name                String
+  code                String
+  description         String?
+  logoUrl             String?
+  status              GatewayStatus        @default(ACTIVE)
+  isDefault           Boolean              @default(false)
+  supportedCountries  String[]             @default([])
+  supportedCurrencies String[]             @default([])
+  supportedMethods    String[]             @default([])
+  successRate         Decimal              @default(0) @db.Decimal(5, 2)
+  avgResponseMs       Int                  @default(0)
+  totalTransactions   Int                  @default(0)
+  costPercent         Decimal              @default(0) @db.Decimal(5, 4)
+  costFixed           Decimal              @default(0) @db.Decimal(18, 2)
+  priority            Int                  @default(0)
+  config              Json?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  merchant            Merchant             @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  routingRules        GatewayRoutingRule[]
+  events              GatewayEvent[]
+
+  @@index([merchantId])
+  @@map("payment_gateways")
+}
+
+model GatewayRoutingRule {
+  id         String          @id @default(uuid())
+  merchantId String
+  gatewayId  String
+  type       RoutingRuleType
+  value      String
+  priority   Int             @default(0)
+  isActive   Boolean         @default(true)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  merchant   Merchant        @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  gateway    PaymentGateway  @relation(fields: [gatewayId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId])
+  @@index([gatewayId])
+  @@map("gateway_routing_rules")
+}
+
+model GatewayRoutingConfig {
+  id              String             @id @default(uuid())
+  merchantId      String             @unique
+  mode            GatewayRoutingMode @default(SUCCESS_RATE)
+  fallbackEnabled Boolean            @default(true)
+  maxRetries      Int                @default(2)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  merchant        Merchant           @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("gateway_routing_configs")
+}
+
+model GatewayEvent {
+  id            String           @id @default(uuid())
+  merchantId    String
+  gatewayId     String
+  transactionId String?
+  eventType     GatewayEventType
+  responseMs    Int?
+  errorCode     String?
+  errorMessage  String?
+  country       String?
+  currency      String?
+  amount        Decimal?         @db.Decimal(18, 2)
+  createdAt     DateTime         @default(now())
+  merchant      Merchant         @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  gateway       PaymentGateway   @relation(fields: [gatewayId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId, createdAt])
+  @@index([gatewayId])
+  @@map("gateway_events")
+}
+
+model CrossGatewayRetry {
+  id                 String                     @id @default(uuid())
+  merchantId         String
+  transactionId      String?
+  originalGatewayId  String
+  amount             Decimal                    @db.Decimal(18, 2)
+  currency           String
+  country            String
+  method             String?
+  status             CrossRetryStatus           @default(PENDING)
+  maxAttempts        Int                        @default(3)
+  attemptCount       Int                        @default(0)
+  succeededGatewayId String?
+  errorSummary       String?
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+  merchant           Merchant                   @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  attempts           CrossGatewayRetryAttempt[]
+
+  @@index([merchantId])
+  @@index([merchantId, status])
+  @@map("cross_gateway_retries")
+}
+
+model CrossGatewayRetryAttempt {
+  id           String                  @id @default(uuid())
+  retryId      String
+  gatewayId    String
+  gatewayName  String
+  gatewayCode  String
+  attemptNum   Int
+  status       CrossRetryAttemptStatus
+  responseMs   Int?
+  errorCode    String?
+  errorMessage String?
+  executedAt   DateTime                @default(now())
+  retry        CrossGatewayRetry       @relation(fields: [retryId], references: [id], onDelete: Cascade)
+
+  @@index([retryId])
+  @@map("cross_gateway_retry_attempts")
+}
+
+model BinRecord {
+  id                 String       @id @default(uuid())
+  bin                String       @unique
+  cardBrand          BinCardBrand @default(OTHER)
+  cardType           BinCardType  @default(UNKNOWN)
+  bankName           String?
+  bankCountry        String?
+  bankCountryCode    String?
+  currency           String?
+  issuingNetwork     String?
+  prepaidFlag        Boolean      @default(false)
+  commercialFlag     Boolean      @default(false)
+  recommendedGateway String?
+  successRateHint    Decimal?     @db.Decimal(5, 2)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  @@index([bin])
+  @@map("bin_records")
+}
+
+model BinLookup {
+  id          String   @id @default(uuid())
+  merchantId  String
+  bin         String
+  cardBrand   String?
+  cardType    String?
+  bankName    String?
+  bankCountry String?
+  gatewayHint String?
+  createdAt   DateTime @default(now())
+  merchant    Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId])
+  @@index([bin])
+  @@map("bin_lookups")
+}
+
+model DynamicCheckout {
+  id                String                 @id @default(uuid())
+  merchantId        String
+  name              String
+  description       String?
+  isActive          Boolean                @default(true)
+  status            DynamicCheckoutStatus  @default(ACTIVE)
+  brandColor        String                 @default("#1A56DB")
+  logoUrl           String?
+  defaultCurrency   String                 @default("SAR")
+  allowedMethods    String[]               @default([])
+  showBinHints      Boolean                @default(true)
+  showGatewayName   Boolean                @default(false)
+  autoSelectGateway Boolean                @default(true)
+  usageCount        Int                    @default(0)
+  totalRevenue      Decimal                @default(0) @db.Decimal(18, 2)
+  conversionRate    Decimal                @default(0) @db.Decimal(5, 2)
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  merchant          Merchant               @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  rules             DynamicCheckoutRule[]
+  events            DynamicCheckoutEvent[]
+
+  @@index([merchantId])
+  @@map("dynamic_checkouts")
+}
+
+model DynamicCheckoutRule {
+  id          String                 @id @default(uuid())
+  checkoutId  String
+  trigger     DynamicCheckoutTrigger
+  condition   String
+  action      String
+  actionValue String?
+  priority    Int                    @default(0)
+  isActive    Boolean                @default(true)
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  checkout    DynamicCheckout        @relation(fields: [checkoutId], references: [id], onDelete: Cascade)
+
+  @@index([checkoutId])
+  @@map("dynamic_checkout_rules")
+}
+
+model DynamicCheckoutEvent {
+  id          String          @id @default(uuid())
+  checkoutId  String
+  eventType   String
+  country     String?
+  currency    String?
+  amount      Decimal?        @db.Decimal(18, 2)
+  gatewayUsed String?
+  completed   Boolean         @default(false)
+  createdAt   DateTime        @default(now())
+  checkout    DynamicCheckout @relation(fields: [checkoutId], references: [id], onDelete: Cascade)
+
+  @@index([checkoutId])
+  @@map("dynamic_checkout_events")
+}
+
+model FraudRule {
+  id           String          @id @default(uuid())
+  merchantId   String
+  name         String
+  description  String?
+  type         FraudRuleType
+  action       FraudRuleAction @default(BLOCK)
+  riskScore    Int             @default(50)
+  conditions   Json
+  isActive     Boolean         @default(true)
+  triggerCount Int             @default(0)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  merchant     Merchant        @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId])
+  @@map("fraud_rules")
+}
+
+model FraudEvent {
+  id             String          @id @default(uuid())
+  merchantId     String
+  transactionId  String?
+  riskScore      Int
+  riskLevel      FraudRiskLevel
+  action         FraudRuleAction
+  triggeredRules String[]        @default([])
+  signals        Json
+  customerPhone  String?
+  customerEmail  String?
+  country        String?
+  amount         Decimal?        @db.Decimal(18, 2)
+  currency       String?
+  ipAddress      String?
+  reviewed       Boolean         @default(false)
+  reviewNote     String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  merchant       Merchant        @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId])
+  @@index([merchantId, riskLevel])
+  @@index([merchantId, createdAt])
+  @@map("fraud_events")
+}
+
+// ─────────────────────────────────────────────────────────────
+// CRM: Quotes & Proposals
+// ─────────────────────────────────────────────────────────────
+
+model QuoteTemplate {
+  id         String        @id @default(uuid())
+  merchantId String
+  name       String
+  language   QuoteLanguage @default(AR)
+  headerNote String?
+  footerNote String?
+  terms      String?
+  isDefault  Boolean       @default(false)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  merchant   Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  quotes     Quote[]
+
+  @@index([merchantId])
+  @@map("quote_templates")
+}
+
+model Quote {
+  id                   String          @id @default(uuid())
+  merchantId           String
+  quoteId              String          @unique
+  customerId           String?
+  templateId           String?
+  language             QuoteLanguage   @default(AR)
+  status               QuoteStatus     @default(DRAFT)
+  customerName         String
+  customerEmail        String?
+  customerPhone        String?
+  customerCompany      String?
+  customerAddress      String?
+  title                String
+  description          String?
+  currency             String          @default("SAR")
+  items                Json
+  subtotal             Decimal         @db.Decimal(18, 2)
+  discountType         String?
+  discountValue        Decimal?        @db.Decimal(18, 2)
+  discountAmount       Decimal?        @db.Decimal(18, 2)
+  taxRate              Decimal?        @db.Decimal(5, 2)
+  taxAmount            Decimal?        @db.Decimal(18, 2)
+  total                Decimal         @db.Decimal(18, 2)
+  headerNote           String?
+  footerNote           String?
+  terms                String?
+  issueDate            DateTime        @default(now())
+  expiryDate           DateTime?
+  sentAt               DateTime?
+  viewedAt             DateTime?
+  acceptedAt           DateTime?
+  rejectedAt           DateTime?
+  viewToken            String          @unique @default(uuid())
+  viewCount            Int             @default(0)
+  convertedToInvoiceId String?
+  dealId               String?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  merchant             Merchant        @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  customer             Customer?       @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  template             QuoteTemplate?  @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  activities           QuoteActivity[]
+
+  @@index([merchantId])
+  @@index([merchantId, status])
+  @@index([merchantId, createdAt])
+  @@index([viewToken])
+  @@map("quotes")
+}
+
+model QuoteActivity {
+  id        String   @id @default(uuid())
+  quoteId   String
+  type      String
+  note      String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  quote     Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  @@index([quoteId])
+  @@map("quote_activities")
+}
+
+// ─────────────────────────────────────────────────────────────
+// CRM: Sales Pipeline
+// ─────────────────────────────────────────────────────────────
+
+model PipelineStage {
+  id         String   @id @default(uuid())
+  merchantId String
+  name       String
+  color      String   @default("#2563EB")
+  order      Int      @default(0)
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  merchant   Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  deals      Deal[]
+
+  @@index([merchantId])
+  @@map("pipeline_stages")
+}
+
+model Deal {
+  id              String         @id @default(uuid())
+  merchantId      String
+  dealId          String         @unique
+  stageId         String
+  customerId      String?
+  title           String
+  value           Decimal        @db.Decimal(18, 2)
+  currency        String         @default("SAR")
+  probability     Int            @default(50)
+  status          DealStatus     @default(OPEN)
+  assignedTo      String?
+  expectedCloseAt DateTime?
+  closedAt        DateTime?
+  lostReason      String?
+  notes           String?
+  lastActivityAt  DateTime       @default(now())
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  merchant        Merchant       @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  stage           PipelineStage  @relation(fields: [stageId], references: [id])
+  customer        Customer?      @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  activities      DealActivity[]
+
+  @@index([merchantId])
+  @@index([merchantId, stageId])
+  @@index([merchantId, status])
+  @@index([merchantId, lastActivityAt])
+  @@map("deals")
+}
+
+model DealActivity {
+  id        String   @id @default(uuid())
+  dealId    String
+  type      String
+  note      String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  deal      Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  @@index([dealId])
+  @@map("deal_activities")
+}
+
+// ─────────────────────────────────────────────────────────────
+// CRM: Customer Loyalty Points
+// ─────────────────────────────────────────────────────────────
+
+enum LoyaltyTransactionType {
+  AWARD
+  REDEEM
+  EXPIRE
+  ADJUST
+}
+
+model LoyaltySettings {
+  id               String   @id @default(uuid())
+  merchantId       String   @unique
+  pointsPerUnit    Int      @default(1)
+  unitAmount       Decimal  @default(10) @db.Decimal(18, 2)
+  pointValue       Decimal  @default(0.1) @db.Decimal(10, 4)
+  expiryDays       Int      @default(365)
+  minRedeemPoints  Int      @default(100)
+  tiers            Json
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  merchant         Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("loyalty_settings")
+}
+
+model LoyaltyCustomer {
+  id             String               @id @default(uuid())
+  merchantId     String
+  customerId     String
+  totalPoints    Int                  @default(0)
+  activePoints   Int                  @default(0)
+  redeemedPoints Int                  @default(0)
+  currentTier    String               @default("Bronze")
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  merchant       Merchant             @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  customer       Customer             @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  transactions   LoyaltyTransaction[]
+
+  @@unique([merchantId, customerId])
+  @@index([merchantId])
+  @@index([merchantId, currentTier])
+  @@index([merchantId, totalPoints])
+  @@map("loyalty_customers")
+}
+
+model LoyaltyTransaction {
+  id                 String                  @id @default(uuid())
+  loyaltyCustomerId  String
+  merchantId         String
+  type               LoyaltyTransactionType
+  points             Int
+  balanceBefore      Int
+  balanceAfter       Int
+  reason             String?
+  orderId            String?
+  discountValue      Decimal?               @db.Decimal(18, 2)
+  expiresAt          DateTime?
+  createdAt          DateTime               @default(now())
+  loyaltyCustomer    LoyaltyCustomer        @relation(fields: [loyaltyCustomerId], references: [id], onDelete: Cascade)
+  merchant           Merchant               @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@index([loyaltyCustomerId])
+  @@index([merchantId])
+  @@map("loyalty_transactions")
+}
