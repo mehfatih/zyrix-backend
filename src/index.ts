@@ -78,7 +78,7 @@ import marketplaceSplitRoutes from "./routes/marketplaceSplit";
 import partnerDashboardRoutes from "./routes/partnerDashboard";
 import growthExperimentsRoutes from "./routes/growthExperiments";
 // ── CRM ──
-import quotesRoutes from "./routes/quotes";
+import quotesRoutes from "./routes/quotes.routes";
 import pipelineRoutes from "./routes/pipeline";
 
 const app = express();
