@@ -5,9 +5,10 @@
 import { Response } from 'express'
 import { prisma } from '../config/database'
 import { AuthenticatedRequest } from '../types'
-import Anthropic from '@anthropic-ai/sdk'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
+const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
 
 // ── Helper: gather merchant financial data ────────────────────
 async function gatherFinancialData(merchantId: string) {
@@ -79,7 +80,7 @@ export async function getSummary(req: AuthenticatedRequest, res: Response): Prom
 export async function getInsights(req: AuthenticatedRequest, res: Response): Promise<void> {
   try {
     const merchantId = req.merchant.id
-    const lang       = (req.query.lang as string) || req.merchant.language || 'AR'
+    const lang       = (req.query.lang as string) || 'AR'
     const data       = await gatherFinancialData(merchantId)
 
     const langMap: Record<string, string> = { AR: 'العربية', TR: 'التركية', EN: 'الإنجليزية' }
@@ -100,13 +101,8 @@ export async function getInsights(req: AuthenticatedRequest, res: Response): Pro
 
 اكتب الرؤى بشكل مختصر وعملي. كل رؤية في سطر واحد. ابدأ كل رؤية بـ emoji مناسب.`
 
-    const message = await anthropic.messages.create({
-      model:      'claude-sonnet-4-20250514',
-      max_tokens: 800,
-      messages:   [{ role: 'user', content: prompt }],
-    })
-
-    const insights = (message.content[0] as any).text
+    const result  = await model.generateContent(prompt)
+    const insights = result.response.text()
     res.json({ success: true, data: { insights, generatedAt: new Date() } })
   } catch (err) {
     console.error(err)
@@ -158,13 +154,8 @@ export async function askAI(req: AuthenticatedRequest, res: Response): Promise<v
 
 أجب بشكل مختصر ومفيد وعملي.`
 
-    const message = await anthropic.messages.create({
-      model:      'claude-sonnet-4-20250514',
-      max_tokens: 600,
-      messages:   [{ role: 'user', content: prompt }],
-    })
-
-    const answer = (message.content[0] as any).text
+    const result = await model.generateContent(prompt)
+    const answer  = result.response.text()
     res.json({ success: true, data: { question, answer, generatedAt: new Date() } })
   } catch (err) {
     console.error(err)
