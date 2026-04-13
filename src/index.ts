@@ -77,6 +77,8 @@ import permissionsEngineRoutes from "./routes/permissionsEngine";
 import marketplaceSplitRoutes from "./routes/marketplaceSplit";
 import partnerDashboardRoutes from "./routes/partnerDashboard";
 import growthExperimentsRoutes from "./routes/growthExperiments";
+// ── CRM ──
+import quotesRoutes from "./routes/quotes";
 
 const app = express();
 app.use(helmet());
@@ -161,6 +163,8 @@ app.use("/api/permissions",             permissionsEngineRoutes);
 app.use("/api/marketplace",             marketplaceSplitRoutes);
 app.use("/api/partners",                partnerDashboardRoutes);
 app.use("/api/growth-experiments",      growthExperimentsRoutes);
+// ── CRM ──
+app.use("/api/quotes",                  quotesRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
