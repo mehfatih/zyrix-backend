@@ -79,6 +79,7 @@ import partnerDashboardRoutes from "./routes/partnerDashboard";
 import growthExperimentsRoutes from "./routes/growthExperiments";
 // ── CRM ──
 import quotesRoutes from "./routes/quotes";
+import pipelineRoutes from "./routes/pipeline";
 
 const app = express();
 app.use(helmet());
@@ -165,6 +166,7 @@ app.use("/api/partners",                partnerDashboardRoutes);
 app.use("/api/growth-experiments",      growthExperimentsRoutes);
 // ── CRM ──
 app.use("/api/quotes",                  quotesRoutes);
+app.use("/api/pipeline",                pipelineRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
