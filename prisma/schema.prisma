@@ -11,51 +11,322 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Language { AR TR EN }
-enum Currency { SAR TRY USD EUR AED KWD QAR IQD }
-enum MerchantStatus { ACTIVE SUSPENDED PENDING_KYC }
-enum KycStatus { PENDING VERIFIED REJECTED }
-enum TransactionStatus { SUCCESS PENDING FAILED }
-enum PaymentMethod { CREDIT_CARD BANK_TRANSFER DIGITAL_WALLET CRYPTO }
-enum SettlementStatus { SCHEDULED PROCESSING COMPLETED FAILED }
-enum DisputeStatus { OPEN UNDER_REVIEW RESOLVED ESCALATED }
-enum RefundStatus { PROCESSING COMPLETED REJECTED }
-enum TransferStatus { PENDING COMPLETED FAILED }
-enum CODStatus { PENDING OUT_FOR_DELIVERY COLLECTED FAILED RETURNED }
-enum InvoiceStatus { DRAFT SENT PAID OVERDUE CANCELLED }
-enum GoalPeriod { DAILY WEEKLY MONTHLY QUARTERLY YEARLY }
-enum SubInterval { MONTHLY YEARLY }
-enum SubStatus { ACTIVE CANCELLED PAST_DUE }
-enum LinkStatus { ACTIVE EXPIRED DISABLED }
-enum NotificationType { PAYMENT SETTLEMENT DISPUTE SYSTEM SECURITY }
-enum AdminRole { SUPER_ADMIN SUPPORT FINANCE }
-enum TeamMemberRole { ADMIN MANAGER ACCOUNTANT VIEWER }
-enum TeamMemberStatus { ACTIVE INVITED SUSPENDED }
-enum CheckoutStatus { ACTIVE INACTIVE ARCHIVED }
-enum CheckoutTheme { DARK LIGHT AUTO }
-enum PaymentMethodType { CREDIT_CARD DEBIT_CARD APPLE_PAY GOOGLE_PAY BANK_TRANSFER STC_PAY MADA TAMARA TABBY CRYPTO COD WALLET }
-enum PaymentMethodStatus { ACTIVE INACTIVE PENDING_SETUP }
-enum RetryStatus { PENDING SUCCESS FAILED EXHAUSTED }
-enum ReconciliationStatus { BALANCED DISCREPANCY PENDING }
-enum EventType { TRANSACTION_CREATED TRANSACTION_UPDATED TRANSACTION_FAILED TRANSACTION_RETRY SETTLEMENT_UPDATED REFUND_CREATED DISPUTE_OPENED PAYMENT_LINK_PAID BALANCE_CHANGED }
-enum WalletTransactionType { CREDIT DEBIT }
-enum GatewayStatus { ACTIVE INACTIVE DEGRADED }
-enum GatewayRoutingMode { COST_OPTIMIZED SUCCESS_RATE LOAD_BALANCED COUNTRY_BASED }
-enum RoutingRuleType { COUNTRY CURRENCY AMOUNT_RANGE PAYMENT_METHOD }
-enum GatewayEventType { SUCCESS FAILURE TIMEOUT PARTIAL }
-enum CrossRetryStatus { PENDING SUCCEEDED EXHAUSTED CANCELLED }
-enum CrossRetryAttemptStatus { SUCCESS FAILED TIMEOUT }
-enum BinCardType { CREDIT DEBIT PREPAID UNKNOWN }
-enum BinCardBrand { VISA MASTERCARD AMEX MADA MEEZA TROY OTHER }
-enum DynamicCheckoutStatus { ACTIVE INACTIVE ARCHIVED }
-enum DynamicCheckoutTrigger { AMOUNT_RANGE CUSTOMER_COUNTRY PAYMENT_METHOD TIME_OF_DAY RETURNING_CUSTOMER }
-enum FraudRiskLevel { LOW MEDIUM HIGH CRITICAL }
-enum FraudRuleAction { ALLOW BLOCK REVIEW CHALLENGE }
-enum FraudRuleType { VELOCITY AMOUNT_LIMIT COUNTRY_BLOCK IP_BLOCK CARD_PATTERN DUPLICATE_CHECK CUSTOM }
-// ── CRM ──
-enum QuoteStatus { DRAFT SENT VIEWED ACCEPTED REJECTED EXPIRED }
-enum QuoteLanguage { AR TR EN }
-enum DealStatus { OPEN WON LOST }
+enum Language {
+  AR
+  TR
+  EN
+}
+
+enum Currency {
+  SAR
+  TRY
+  USD
+  EUR
+  AED
+  KWD
+  QAR
+  IQD
+}
+
+enum MerchantStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_KYC
+}
+
+enum KycStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum TransactionStatus {
+  SUCCESS
+  PENDING
+  FAILED
+}
+
+enum PaymentMethod {
+  CREDIT_CARD
+  BANK_TRANSFER
+  DIGITAL_WALLET
+  CRYPTO
+}
+
+enum SettlementStatus {
+  SCHEDULED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  ESCALATED
+}
+
+enum RefundStatus {
+  PROCESSING
+  COMPLETED
+  REJECTED
+}
+
+enum TransferStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum CODStatus {
+  PENDING
+  OUT_FOR_DELIVERY
+  COLLECTED
+  FAILED
+  RETURNED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum GoalPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum SubInterval {
+  MONTHLY
+  YEARLY
+}
+
+enum SubStatus {
+  ACTIVE
+  CANCELLED
+  PAST_DUE
+}
+
+enum LinkStatus {
+  ACTIVE
+  EXPIRED
+  DISABLED
+}
+
+enum NotificationType {
+  PAYMENT
+  SETTLEMENT
+  DISPUTE
+  SYSTEM
+  SECURITY
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  SUPPORT
+  FINANCE
+}
+
+enum TeamMemberRole {
+  ADMIN
+  MANAGER
+  ACCOUNTANT
+  VIEWER
+}
+
+enum TeamMemberStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+}
+
+enum CheckoutStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum CheckoutTheme {
+  DARK
+  LIGHT
+  AUTO
+}
+
+enum PaymentMethodType {
+  CREDIT_CARD
+  DEBIT_CARD
+  APPLE_PAY
+  GOOGLE_PAY
+  BANK_TRANSFER
+  STC_PAY
+  MADA
+  TAMARA
+  TABBY
+  CRYPTO
+  COD
+  WALLET
+}
+
+enum PaymentMethodStatus {
+  ACTIVE
+  INACTIVE
+  PENDING_SETUP
+}
+
+enum RetryStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  EXHAUSTED
+}
+
+enum ReconciliationStatus {
+  BALANCED
+  DISCREPANCY
+  PENDING
+}
+
+enum EventType {
+  TRANSACTION_CREATED
+  TRANSACTION_UPDATED
+  TRANSACTION_FAILED
+  TRANSACTION_RETRY
+  SETTLEMENT_UPDATED
+  REFUND_CREATED
+  DISPUTE_OPENED
+  PAYMENT_LINK_PAID
+  BALANCE_CHANGED
+}
+
+enum WalletTransactionType {
+  CREDIT
+  DEBIT
+}
+
+enum GatewayStatus {
+  ACTIVE
+  INACTIVE
+  DEGRADED
+}
+
+enum GatewayRoutingMode {
+  COST_OPTIMIZED
+  SUCCESS_RATE
+  LOAD_BALANCED
+  COUNTRY_BASED
+}
+
+enum RoutingRuleType {
+  COUNTRY
+  CURRENCY
+  AMOUNT_RANGE
+  PAYMENT_METHOD
+}
+
+enum GatewayEventType {
+  SUCCESS
+  FAILURE
+  TIMEOUT
+  PARTIAL
+}
+
+enum CrossRetryStatus {
+  PENDING
+  SUCCEEDED
+  EXHAUSTED
+  CANCELLED
+}
+
+enum CrossRetryAttemptStatus {
+  SUCCESS
+  FAILED
+  TIMEOUT
+}
+
+enum BinCardType {
+  CREDIT
+  DEBIT
+  PREPAID
+  UNKNOWN
+}
+
+enum BinCardBrand {
+  VISA
+  MASTERCARD
+  AMEX
+  MADA
+  MEEZA
+  TROY
+  OTHER
+}
+
+enum DynamicCheckoutStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum DynamicCheckoutTrigger {
+  AMOUNT_RANGE
+  CUSTOMER_COUNTRY
+  PAYMENT_METHOD
+  TIME_OF_DAY
+  RETURNING_CUSTOMER
+}
+
+enum FraudRiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum FraudRuleAction {
+  ALLOW
+  BLOCK
+  REVIEW
+  CHALLENGE
+}
+
+enum FraudRuleType {
+  VELOCITY
+  AMOUNT_LIMIT
+  COUNTRY_BLOCK
+  IP_BLOCK
+  CARD_PATTERN
+  DUPLICATE_CHECK
+  CUSTOM
+}
+
+// ── CRM ──────────────────────────────────────────────────────
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+  VIEWED
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+enum QuoteLanguage {
+  AR
+  TR
+  EN
+}
+
+enum DealStatus {
+  OPEN
+  WON
+  LOST
+}
 
 // ─────────────────────────────────────────────────────────────
 
@@ -69,6 +340,7 @@ model Admin {
   lastLoginAt  DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+
   @@map("admins")
 }
 
@@ -131,6 +403,7 @@ model Merchant {
   quoteTemplates       QuoteTemplate[]
   pipelineStages       PipelineStage[]
   deals                Deal[]
+
   @@map("merchants")
 }
 
@@ -144,6 +417,7 @@ model MerchantSubscription {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
   merchant   Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
   @@map("merchant_subscriptions")
 }
 
@@ -158,6 +432,7 @@ model Wallet {
   updatedAt     DateTime            @updatedAt
   merchant      Merchant            @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   transactions  WalletTransaction[]
+
   @@unique([merchantId, currency])
   @@index([merchantId])
   @@map("wallets")
@@ -174,6 +449,7 @@ model WalletTransaction {
   reference     String?
   createdAt     DateTime              @default(now())
   wallet        Wallet                @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
   @@index([walletId])
   @@map("wallet_transactions")
 }
@@ -188,6 +464,7 @@ model OtpCode {
   merchantId String?
   createdAt  DateTime  @default(now())
   merchant   Merchant? @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
   @@map("otp_codes")
 }
 
@@ -209,6 +486,7 @@ model PaymentMethodConfig {
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
   merchant     Merchant            @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
   @@unique([merchantId, method])
   @@map("payment_method_configs")
 }
@@ -237,6 +515,7 @@ model Transaction {
   disputes      Dispute[]
   refunds       Refund[]
   retryLogs     RetryLog[]
+
   @@map("transactions")
 }
 
@@ -250,6 +529,7 @@ model RetryLog {
   nextRetryAt   DateTime?
   executedAt    DateTime    @default(now())
   transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
   @@map("retry_logs")
 }
 
@@ -274,6 +554,7 @@ model ReconciliationReport {
   notes             String?
   createdAt         DateTime             @default(now())
   merchant          Merchant             @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
   @@map("reconciliation_reports")
 }
 
@@ -285,6 +566,7 @@ model EventLog {
   delivered  Boolean   @default(false)
   createdAt  DateTime  @default(now())
   merchant   Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
   @@index([merchantId, delivered, createdAt])
   @@map("event_logs")
 }
@@ -304,6 +586,7 @@ model Settlement {
   completedDate DateTime?
   createdAt     DateTime         @default(now())
   merchant      Merchant         @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
   @@map("settlements")
 }
 
@@ -322,6 +605,7 @@ model Dispute {
   resolvedAt    DateTime?
   merchant      Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   transaction   Transaction   @relation(fields: [transactionId], references: [id])
+
   @@map("disputes")
 }
 
@@ -338,6 +622,7 @@ model Refund {
   createdAt     DateTime     @default(now())
   merchant      Merchant     @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   transaction   Transaction  @relation(fields: [transactionId], references: [id])
+
   @@map("refunds")
 }
 
@@ -354,6 +639,7 @@ model Transfer {
   completedAt    DateTime?
   fromMerchant   Merchant       @relation("SentTransfers", fields: [fromMerchantId], references: [id], onDelete: Cascade)
   toMerchant     Merchant       @relation("ReceivedTransfers", fields: [toMerchantId], references: [id], onDelete: Cascade)
+
   @@map("transfers")
 }
 
@@ -373,6 +659,7 @@ model CODOrder {
   notes           String?
   createdAt       DateTime  @default(now())
   merchant        Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
   @@map("cod_orders")
 }
 
@@ -389,6 +676,7 @@ model Invoice {
   paidDate     DateTime?
   createdAt    DateTime      @default(now())
   merchant     Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
   @@map("invoices")
 }
 
@@ -402,6 +690,7 @@ model Expense {
   date        DateTime
   createdAt   DateTime @default(now())
   merchant    Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
   @@map("expenses")
 }
 
@@ -417,6 +706,7 @@ model RevenueGoal {
   endDate       DateTime
   createdAt     DateTime   @default(now())
   merchant      Merchant   @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
   @@map("revenue_goals")
 }
 
@@ -432,6 +722,7 @@ model Subscription {
   currentPeriodEnd   DateTime
   createdAt          DateTime    @default(now())
   merchant           Merchant    @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
   @@map("subscriptions")
 }
 
@@ -457,6 +748,7 @@ model PaymentLink {
   createdAt   DateTime      @default(now())
   merchant    Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   payments    LinkPayment[]
+
   @@map("payment_links")
 }
 
@@ -475,6 +767,7 @@ model LinkPayment {
   utmCampaign String?
   status      String      @default("COMPLETED")
   createdAt   DateTime    @default(now())
+
   @@map("link_payments")
 }
 
@@ -488,6 +781,7 @@ model Notification {
   data       Json?
   createdAt  DateTime         @default(now())
   merchant   Merchant         @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
   @@map("notifications")
 }
 
@@ -501,6 +795,7 @@ model ApiKey {
   lastUsedAt DateTime?
   createdAt  DateTime  @default(now())
   merchant   Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
   @@map("api_keys")
 }
 
@@ -516,6 +811,7 @@ model Webhook {
   lastTriggeredAt DateTime?
   createdAt       DateTime  @default(now())
   merchant        Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
   @@map("webhooks")
 }
 
@@ -531,6 +827,7 @@ model TeamMember {
   joinedAt    DateTime?
   updatedAt   DateTime         @updatedAt
   merchant    Merchant         @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
   @@unique([merchantId, email])
   @@map("team_members")
 }
@@ -542,6 +839,7 @@ model FxRate {
   rate       Decimal  @db.Decimal(18, 6)
   source     String   @default("manual")
   recordedAt DateTime @default(now())
+
   @@unique([fromCcy, toCcy, recordedAt])
   @@map("fx_rates")
 }
@@ -572,6 +870,7 @@ model HostedCheckout {
   updatedAt         DateTime          @updatedAt
   merchant          Merchant          @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   sessions          CheckoutSession[]
+
   @@map("hosted_checkouts")
 }
 
@@ -592,6 +891,7 @@ model CheckoutSession {
   metadata        Json?
   createdAt       DateTime       @default(now())
   checkout        HostedCheckout @relation(fields: [checkoutId], references: [id], onDelete: Cascade)
+
   @@map("checkout_sessions")
 }
 
@@ -618,6 +918,7 @@ model Customer {
   merchant      Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   quotes        Quote[]
   deals         Deal[]
+
   @@index([merchantId])
   @@index([merchantId, totalSpent])
   @@index([merchantId, lastSeenAt])
@@ -636,6 +937,7 @@ model FeatureFlag {
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
   merchant              Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
   @@unique([merchantId, key])
   @@index([merchantId])
   @@map("feature_flags")
@@ -665,6 +967,7 @@ model PaymentGateway {
   merchant            Merchant             @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   routingRules        GatewayRoutingRule[]
   events              GatewayEvent[]
+
   @@index([merchantId])
   @@map("payment_gateways")
 }
@@ -681,6 +984,7 @@ model GatewayRoutingRule {
   updatedAt  DateTime        @updatedAt
   merchant   Merchant        @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   gateway    PaymentGateway  @relation(fields: [gatewayId], references: [id], onDelete: Cascade)
+
   @@index([merchantId])
   @@index([gatewayId])
   @@map("gateway_routing_rules")
@@ -695,6 +999,7 @@ model GatewayRoutingConfig {
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
   merchant        Merchant           @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
   @@map("gateway_routing_configs")
 }
 
@@ -713,6 +1018,7 @@ model GatewayEvent {
   createdAt     DateTime         @default(now())
   merchant      Merchant         @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   gateway       PaymentGateway   @relation(fields: [gatewayId], references: [id], onDelete: Cascade)
+
   @@index([merchantId, createdAt])
   @@index([gatewayId])
   @@map("gateway_events")
@@ -736,6 +1042,7 @@ model CrossGatewayRetry {
   updatedAt          DateTime                   @updatedAt
   merchant           Merchant                   @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   attempts           CrossGatewayRetryAttempt[]
+
   @@index([merchantId])
   @@index([merchantId, status])
   @@map("cross_gateway_retries")
@@ -754,6 +1061,7 @@ model CrossGatewayRetryAttempt {
   errorMessage String?
   executedAt   DateTime                @default(now())
   retry        CrossGatewayRetry       @relation(fields: [retryId], references: [id], onDelete: Cascade)
+
   @@index([retryId])
   @@map("cross_gateway_retry_attempts")
 }
@@ -774,6 +1082,7 @@ model BinRecord {
   successRateHint    Decimal?     @db.Decimal(5, 2)
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
+
   @@index([bin])
   @@map("bin_records")
 }
@@ -789,6 +1098,7 @@ model BinLookup {
   gatewayHint String?
   createdAt   DateTime @default(now())
   merchant    Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
   @@index([merchantId])
   @@index([bin])
   @@map("bin_lookups")
@@ -816,6 +1126,7 @@ model DynamicCheckout {
   merchant          Merchant               @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   rules             DynamicCheckoutRule[]
   events            DynamicCheckoutEvent[]
+
   @@index([merchantId])
   @@map("dynamic_checkouts")
 }
@@ -832,6 +1143,7 @@ model DynamicCheckoutRule {
   createdAt   DateTime               @default(now())
   updatedAt   DateTime               @updatedAt
   checkout    DynamicCheckout        @relation(fields: [checkoutId], references: [id], onDelete: Cascade)
+
   @@index([checkoutId])
   @@map("dynamic_checkout_rules")
 }
@@ -847,6 +1159,7 @@ model DynamicCheckoutEvent {
   completed   Boolean         @default(false)
   createdAt   DateTime        @default(now())
   checkout    DynamicCheckout @relation(fields: [checkoutId], references: [id], onDelete: Cascade)
+
   @@index([checkoutId])
   @@map("dynamic_checkout_events")
 }
@@ -865,6 +1178,7 @@ model FraudRule {
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
   merchant     Merchant        @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
   @@index([merchantId])
   @@map("fraud_rules")
 }
@@ -889,6 +1203,7 @@ model FraudEvent {
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   merchant       Merchant        @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
   @@index([merchantId])
   @@index([merchantId, riskLevel])
   @@index([merchantId, createdAt])
@@ -912,18 +1227,19 @@ model QuoteTemplate {
   updatedAt  DateTime      @updatedAt
   merchant   Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   quotes     Quote[]
+
   @@index([merchantId])
   @@map("quote_templates")
 }
 
 model Quote {
-  id                   String         @id @default(uuid())
+  id                   String          @id @default(uuid())
   merchantId           String
-  quoteId              String         @unique
+  quoteId              String          @unique
   customerId           String?
   templateId           String?
-  language             QuoteLanguage  @default(AR)
-  status               QuoteStatus    @default(DRAFT)
+  language             QuoteLanguage   @default(AR)
+  status               QuoteStatus     @default(DRAFT)
   customerName         String
   customerEmail        String?
   customerPhone        String?
@@ -931,34 +1247,35 @@ model Quote {
   customerAddress      String?
   title                String
   description          String?
-  currency             String         @default("SAR")
+  currency             String          @default("SAR")
   items                Json
-  subtotal             Decimal        @db.Decimal(18, 2)
+  subtotal             Decimal         @db.Decimal(18, 2)
   discountType         String?
-  discountValue        Decimal?       @db.Decimal(18, 2)
-  discountAmount       Decimal?       @db.Decimal(18, 2)
-  taxRate              Decimal?       @db.Decimal(5, 2)
-  taxAmount            Decimal?       @db.Decimal(18, 2)
-  total                Decimal        @db.Decimal(18, 2)
+  discountValue        Decimal?        @db.Decimal(18, 2)
+  discountAmount       Decimal?        @db.Decimal(18, 2)
+  taxRate              Decimal?        @db.Decimal(5, 2)
+  taxAmount            Decimal?        @db.Decimal(18, 2)
+  total                Decimal         @db.Decimal(18, 2)
   headerNote           String?
   footerNote           String?
   terms                String?
-  issueDate            DateTime       @default(now())
+  issueDate            DateTime        @default(now())
   expiryDate           DateTime?
   sentAt               DateTime?
   viewedAt             DateTime?
   acceptedAt           DateTime?
   rejectedAt           DateTime?
-  viewToken            String         @unique @default(uuid())
-  viewCount            Int            @default(0)
+  viewToken            String          @unique @default(uuid())
+  viewCount            Int             @default(0)
   convertedToInvoiceId String?
   dealId               String?
-  createdAt            DateTime       @default(now())
-  updatedAt            DateTime       @updatedAt
-  merchant             Merchant       @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  customer             Customer?      @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  template             QuoteTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  merchant             Merchant        @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  customer             Customer?       @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  template             QuoteTemplate?  @relation(fields: [templateId], references: [id], onDelete: SetNull)
   activities           QuoteActivity[]
+
   @@index([merchantId])
   @@index([merchantId, status])
   @@index([merchantId, createdAt])
@@ -974,6 +1291,7 @@ model QuoteActivity {
   metadata  Json?
   createdAt DateTime @default(now())
   quote     Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
   @@index([quoteId])
   @@map("quote_activities")
 }
@@ -993,33 +1311,35 @@ model PipelineStage {
   updatedAt  DateTime @updatedAt
   merchant   Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   deals      Deal[]
+
   @@index([merchantId])
   @@map("pipeline_stages")
 }
 
 model Deal {
-  id              String        @id @default(uuid())
+  id              String         @id @default(uuid())
   merchantId      String
-  dealId          String        @unique
+  dealId          String         @unique
   stageId         String
   customerId      String?
   title           String
-  value           Decimal       @db.Decimal(18, 2)
-  currency        String        @default("SAR")
-  probability     Int           @default(50)
-  status          DealStatus    @default(OPEN)
+  value           Decimal        @db.Decimal(18, 2)
+  currency        String         @default("SAR")
+  probability     Int            @default(50)
+  status          DealStatus     @default(OPEN)
   assignedTo      String?
   expectedCloseAt DateTime?
   closedAt        DateTime?
   lostReason      String?
   notes           String?
-  lastActivityAt  DateTime      @default(now())
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  merchant        Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  stage           PipelineStage @relation(fields: [stageId], references: [id])
-  customer        Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  lastActivityAt  DateTime       @default(now())
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  merchant        Merchant       @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  stage           PipelineStage  @relation(fields: [stageId], references: [id])
+  customer        Customer?      @relation(fields: [customerId], references: [id], onDelete: SetNull)
   activities      DealActivity[]
+
   @@index([merchantId])
   @@index([merchantId, stageId])
   @@index([merchantId, status])
@@ -1035,6 +1355,7 @@ model DealActivity {
   metadata  Json?
   createdAt DateTime @default(now())
   deal      Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
   @@index([dealId])
   @@map("deal_activities")
 }
