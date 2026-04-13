@@ -305,6 +305,22 @@ enum FraudRuleType {
   CUSTOM
 }
 
+// ── CRM: Quotes & Proposals ───────────────────────────────────
+enum QuoteStatus {
+  DRAFT
+  SENT
+  VIEWED
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+enum QuoteLanguage {
+  AR
+  TR
+  EN
+}
+
 // ─────────────────────────────────────────────────────────────
 
 model Admin {
@@ -375,6 +391,9 @@ model Merchant {
   fraudRules           FraudRule[]
   fraudEvents          FraudEvent[]
   merchantSubscription MerchantSubscription?
+  // ── CRM ──
+  quotes               Quote[]
+  quoteTemplates       QuoteTemplate[]
 
   @@map("merchants")
 }
@@ -888,6 +907,8 @@ model Customer {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   merchant      Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  // ── CRM ──
+  quotes        Quote[]
 
   @@index([merchantId])
   @@index([merchantId, totalSpent])
@@ -943,17 +964,17 @@ model PaymentGateway {
 }
 
 model GatewayRoutingRule {
-  id         String             @id @default(uuid())
+  id         String          @id @default(uuid())
   merchantId String
   gatewayId  String
   type       RoutingRuleType
   value      String
-  priority   Int                @default(0)
-  isActive   Boolean            @default(true)
-  createdAt  DateTime           @default(now())
-  updatedAt  DateTime           @updatedAt
-  merchant   Merchant           @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  gateway    PaymentGateway     @relation(fields: [gatewayId], references: [id], onDelete: Cascade)
+  priority   Int             @default(0)
+  isActive   Boolean         @default(true)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  merchant   Merchant        @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  gateway    PaymentGateway  @relation(fields: [gatewayId], references: [id], onDelete: Cascade)
 
   @@index([merchantId])
   @@index([gatewayId])
@@ -1178,4 +1199,90 @@ model FraudEvent {
   @@index([merchantId, riskLevel])
   @@index([merchantId, createdAt])
   @@map("fraud_events")
+}
+
+// ─────────────────────────────────────────────────────────────
+// CRM: Quotes & Proposals
+// ─────────────────────────────────────────────────────────────
+
+model QuoteTemplate {
+  id         String        @id @default(uuid())
+  merchantId String
+  name       String
+  language   QuoteLanguage @default(AR)
+  headerNote String?
+  footerNote String?
+  terms      String?
+  isDefault  Boolean       @default(false)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  merchant   Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  quotes     Quote[]
+
+  @@index([merchantId])
+  @@map("quote_templates")
+}
+
+model Quote {
+  id                   String         @id @default(uuid())
+  merchantId           String
+  quoteId              String         @unique
+  customerId           String?
+  templateId           String?
+  language             QuoteLanguage  @default(AR)
+  status               QuoteStatus    @default(DRAFT)
+  customerName         String
+  customerEmail        String?
+  customerPhone        String?
+  customerCompany      String?
+  customerAddress      String?
+  title                String
+  description          String?
+  currency             String         @default("SAR")
+  items                Json
+  subtotal             Decimal        @db.Decimal(18, 2)
+  discountType         String?
+  discountValue        Decimal?       @db.Decimal(18, 2)
+  discountAmount       Decimal?       @db.Decimal(18, 2)
+  taxRate              Decimal?       @db.Decimal(5, 2)
+  taxAmount            Decimal?       @db.Decimal(18, 2)
+  total                Decimal        @db.Decimal(18, 2)
+  headerNote           String?
+  footerNote           String?
+  terms                String?
+  issueDate            DateTime       @default(now())
+  expiryDate           DateTime?
+  sentAt               DateTime?
+  viewedAt             DateTime?
+  acceptedAt           DateTime?
+  rejectedAt           DateTime?
+  viewToken            String         @unique @default(uuid())
+  viewCount            Int            @default(0)
+  convertedToInvoiceId String?
+  dealId               String?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  merchant             Merchant       @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  customer             Customer?      @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  template             QuoteTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  activities           QuoteActivity[]
+
+  @@index([merchantId])
+  @@index([merchantId, status])
+  @@index([merchantId, createdAt])
+  @@index([viewToken])
+  @@map("quotes")
+}
+
+model QuoteActivity {
+  id        String   @id @default(uuid())
+  quoteId   String
+  type      String
+  note      String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  quote     Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  @@index([quoteId])
+  @@map("quote_activities")
 }
