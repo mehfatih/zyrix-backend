@@ -1,31 +1,31 @@
 // ─────────────────────────────────────────────────────────────
 // src/routes/quotes.routes.ts
 // ─────────────────────────────────────────────────────────────
-import { Router } from 'express'
+import { Router, RequestHandler } from 'express'
 import { authenticateToken } from '../middleware/auth'
-import * as QuotesController from '../controllers/quotes.controller'
+import * as C from '../controllers/quotes.controller'
 
 const router = Router()
+const h = (fn: Function): RequestHandler => fn as RequestHandler
 
-// كل الـ routes محمية بـ auth ماعدا public view endpoint
-router.get('/',                         authenticateToken, QuotesController.listQuotes)
-router.post('/',                        authenticateToken, QuotesController.createQuote)
-router.get('/reports',                  authenticateToken, QuotesController.getReports)
-router.get('/templates',                authenticateToken, QuotesController.listTemplates)
-router.post('/templates',               authenticateToken, QuotesController.createTemplate)
-router.put('/templates/:id',            authenticateToken, QuotesController.updateTemplate)
-router.delete('/templates/:id',         authenticateToken, QuotesController.deleteTemplate)
-router.get('/:id',                      authenticateToken, QuotesController.getQuote)
-router.patch('/:id',                    authenticateToken, QuotesController.updateQuote)
-router.delete('/:id',                   authenticateToken, QuotesController.deleteQuote)
-router.post('/:id/send',                authenticateToken, QuotesController.sendQuote)
-router.post('/:id/convert-invoice',     authenticateToken, QuotesController.convertToInvoice)
-router.get('/:id/pdf',                  authenticateToken, QuotesController.downloadPdf)
-router.get('/:id/activities',           authenticateToken, QuotesController.getActivities)
+router.get   ('/',                          authenticateToken, h(C.listQuotes))
+router.post  ('/',                          authenticateToken, h(C.createQuote))
+router.get   ('/reports',                   authenticateToken, h(C.getReports))
+router.get   ('/templates',                 authenticateToken, h(C.listTemplates))
+router.post  ('/templates',                 authenticateToken, h(C.createTemplate))
+router.put   ('/templates/:id',             authenticateToken, h(C.updateTemplate))
+router.delete('/templates/:id',             authenticateToken, h(C.deleteTemplate))
+router.get   ('/:id',                       authenticateToken, h(C.getQuote))
+router.patch ('/:id',                       authenticateToken, h(C.updateQuote))
+router.delete('/:id',                       authenticateToken, h(C.deleteQuote))
+router.post  ('/:id/send',                  authenticateToken, h(C.sendQuote))
+router.post  ('/:id/convert-invoice',       authenticateToken, h(C.convertToInvoice))
+router.get   ('/:id/pdf',                   authenticateToken, h(C.downloadPdf))
+router.get   ('/:id/activities',            authenticateToken, h(C.getActivities))
 
-// Public endpoint — العميل يفتح العرض بالـ token
-router.get('/public/:viewToken',        QuotesController.viewPublicQuote)
-router.post('/public/:viewToken/accept', QuotesController.acceptPublicQuote)
-router.post('/public/:viewToken/reject', QuotesController.rejectPublicQuote)
+// Public — بدون auth
+router.get   ('/public/:viewToken',         C.viewPublicQuote  as RequestHandler)
+router.post  ('/public/:viewToken/accept',  C.acceptPublicQuote as RequestHandler)
+router.post  ('/public/:viewToken/reject',  C.rejectPublicQuote as RequestHandler)
 
 export default router
