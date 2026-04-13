@@ -1,28 +1,29 @@
 // ─────────────────────────────────────────────────────────────
 // src/routes/pipeline.ts
 // ─────────────────────────────────────────────────────────────
-import { Router } from 'express'
+import { Router, RequestHandler } from 'express'
 import { authenticateToken } from '../middleware/auth'
 import * as C from '../controllers/pipeline.controller'
 
 const router = Router()
+const h = (fn: Function): RequestHandler => fn as RequestHandler
 
 // Stages
-router.get   ('/stages',               authenticateToken, C.listStages)
-router.post  ('/stages',               authenticateToken, C.createStage)
-router.patch ('/stages/:id',           authenticateToken, C.updateStage)
-router.delete('/stages/:id',           authenticateToken, C.deleteStage)
-router.patch ('/stages/reorder',       authenticateToken, C.reorderStages)
+router.get   ('/stages',               authenticateToken, h(C.listStages))
+router.post  ('/stages',               authenticateToken, h(C.createStage))
+router.patch ('/stages/reorder',       authenticateToken, h(C.reorderStages))
+router.patch ('/stages/:id',           authenticateToken, h(C.updateStage))
+router.delete('/stages/:id',           authenticateToken, h(C.deleteStage))
 
 // Deals
-router.get   ('/deals',                authenticateToken, C.listDeals)
-router.post  ('/deals',                authenticateToken, C.createDeal)
-router.get   ('/deals/reports',        authenticateToken, C.getReports)
-router.get   ('/deals/:id',            authenticateToken, C.getDeal)
-router.patch ('/deals/:id',            authenticateToken, C.updateDeal)
-router.delete('/deals/:id',            authenticateToken, C.deleteDeal)
-router.patch ('/deals/:id/stage',      authenticateToken, C.moveDealStage)
-router.post  ('/deals/:id/activity',   authenticateToken, C.addActivity)
-router.get   ('/deals/:id/activities', authenticateToken, C.getActivities)
+router.get   ('/deals',                authenticateToken, h(C.listDeals))
+router.post  ('/deals',                authenticateToken, h(C.createDeal))
+router.get   ('/deals/reports',        authenticateToken, h(C.getReports))
+router.get   ('/deals/:id',            authenticateToken, h(C.getDeal))
+router.patch ('/deals/:id',            authenticateToken, h(C.updateDeal))
+router.delete('/deals/:id',            authenticateToken, h(C.deleteDeal))
+router.patch ('/deals/:id/stage',      authenticateToken, h(C.moveDealStage))
+router.post  ('/deals/:id/activity',   authenticateToken, h(C.addActivity))
+router.get   ('/deals/:id/activities', authenticateToken, h(C.getActivities))
 
 export default router
