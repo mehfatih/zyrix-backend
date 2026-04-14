@@ -86,6 +86,7 @@ import cashFlowRoutes from "./routes/cashFlow";
 import followUpRoutes from "./routes/followUp";
 import tasksRoutes from "./routes/tasks";
 import commissionEngineRoutes from "./routes/commissionEngine";
+import marketingCampaignsRoutes from "./routes/marketingCampaigns";
 
 const app = express();
 app.use(helmet());
@@ -179,6 +180,7 @@ app.use("/api/cash-flow",               cashFlowRoutes);
 app.use("/api/follow-up",               followUpRoutes);
 app.use("/api/tasks",                   tasksRoutes);
 app.use("/api/commission-engine",       commissionEngineRoutes);
+app.use("/api/marketing-campaigns",     marketingCampaignsRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
