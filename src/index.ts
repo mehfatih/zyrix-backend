@@ -87,6 +87,7 @@ import followUpRoutes from "./routes/followUp";
 import tasksRoutes from "./routes/tasks";
 import commissionEngineRoutes from "./routes/commissionEngine";
 import marketingCampaignsRoutes from "./routes/marketingCampaigns";
+import adCampaignsRoutes from "./routes/adCampaigns";
 
 const app = express();
 app.use(helmet());
@@ -181,6 +182,7 @@ app.use("/api/follow-up",               followUpRoutes);
 app.use("/api/tasks",                   tasksRoutes);
 app.use("/api/commission-engine",       commissionEngineRoutes);
 app.use("/api/marketing-campaigns",     marketingCampaignsRoutes);
+app.use("/api/ad-campaigns",            adCampaignsRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
