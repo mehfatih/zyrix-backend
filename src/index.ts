@@ -83,6 +83,7 @@ import pipelineRoutes from "./routes/pipeline";
 import loyaltyRoutes from "./routes/loyalty";
 import aiCfoRoutes from "./routes/ai-cfo";
 import cashFlowRoutes from "./routes/cashFlow";
+import followUpRoutes from "./routes/followUp";
 
 const app = express();
 app.use(helmet());
@@ -173,6 +174,7 @@ app.use("/api/pipeline",                pipelineRoutes);
 app.use("/api/loyalty",                 loyaltyRoutes);
 app.use("/api/ai-cfo",                  aiCfoRoutes);
 app.use("/api/cash-flow",               cashFlowRoutes);
+app.use("/api/follow-up",               followUpRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
