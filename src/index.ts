@@ -88,6 +88,7 @@ import tasksRoutes from "./routes/tasks";
 import commissionEngineRoutes from "./routes/commissionEngine";
 import marketingCampaignsRoutes from "./routes/marketingCampaigns";
 import adCampaignsRoutes from "./routes/adCampaigns";
+import roleDashboardRoutes from "./routes/roleDashboard";
 
 const app = express();
 app.use(helmet());
@@ -183,6 +184,7 @@ app.use("/api/tasks",                   tasksRoutes);
 app.use("/api/commission-engine",       commissionEngineRoutes);
 app.use("/api/marketing-campaigns",     marketingCampaignsRoutes);
 app.use("/api/ad-campaigns",            adCampaignsRoutes);
+app.use("/api/role-dashboard",          roleDashboardRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
